@@ -33,9 +33,9 @@ Route::get('/system/run-migrations', function () {
     return response("<div style='font-family:sans-serif;padding:30px;max-width:700px;margin:40px auto;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;'><h2 style='color:#16a34a;margin-top:0;'>✅ ডাটাবেজ মাইগ্রেশন সফল হয়েছে!</h2><p style='color:#64748b;font-size:14px;'>সবগুলো নতুন ও পুরাতন টেবিল সঠিকভাবে আপডেট ও তৈরি করা হয়েছে।</p><pre style='padding:15px;background:#0f172a;color:#38bdf8;border-radius:10px;overflow:auto;font-size:13px;'>" . htmlspecialchars($output ?: "Nothing to migrate. All tables are up to date.") . "</pre><a href='/admin/dashboard' style='display:inline-block;padding:10px 20px;background:#16a34a;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin-top:10px;'>ড্যাশবোর্ডে ফিরে যান</a></div>");
 });
 
-// ─── Software License Protection & Activation Routes ──────────────────────
-Route::get('/activate-license', [\App\Http\Controllers\LicenseController::class, 'showActivation'])->name('license.activate');
-Route::post('/activate-license', [\App\Http\Controllers\LicenseController::class, 'submitActivation'])->name('license.submit');
+// ─── Software License Route (Disabled - Redirects to Home) ──────────────────
+Route::get('/activate-license', fn() => redirect('/'))->name('license.activate');
+Route::post('/activate-license', fn() => redirect('/'))->name('license.submit');
 
 // ─── Currency Switch Route (BDT ৳ <-> INR ₹) ───────────────────────────────
 Route::post('/currency/switch', function (Request $request) {

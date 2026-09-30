@@ -13,7 +13,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
-            \App\Http\Middleware\VerifyLicense::class,
             \App\Http\Middleware\CurrencyMiddleware::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\VisitorTrackingMiddleware::class,

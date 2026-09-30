@@ -35,27 +35,6 @@ class VerifyLicense
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Allow activation endpoints and admin panel
-        foreach ($this->except as $pattern) {
-            if ($request->is($pattern)) {
-                return $next($request);
-            }
-        }
-
-        // 2. Verify if current domain has an active, valid license
-        if (!LicenseService::isActivated()) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Software License Verification Required. The source code is locked.',
-                    'domain'  => LicenseService::getCurrentDomain(),
-                    'activate_url' => url('/activate-license'),
-                ], 403);
-            }
-
-            return redirect()->to('/activate-license');
-        }
-
         return $next($request);
     }
 }
