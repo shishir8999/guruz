@@ -1,0 +1,1 @@
+import{H as e,$ as s}from"./vendor-core-BmfmmwxG.js";function t(){return e.jsxs(e.Fragment,{children:[e.jsx(s,{title:"Under Construction"}),e.jsxs("div",{className:"bg-white p-6 rounded-lg shadow-sm",children:[e.jsx("h2",{className:"text-xl font-bold mb-4",children:"Under Construction"}),e.jsx("p",{children:"This page is currently being built."})]})]})}export{t as default};
