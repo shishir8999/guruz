@@ -489,7 +489,6 @@ export default function AdminLayout({ children, title = 'Dashboard' }: { childre
                         { label: 'System Config', href: '/admin/system/config' },
                         { label: 'Backups', href: '/admin/system/backups' },
                         { label: 'Feature Limits', href: '/admin/system/feature-limits' },
-                        { label: '🛡️ Software License', href: '/admin/system/license' },
                     ],
                 },
 

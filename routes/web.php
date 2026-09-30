@@ -1068,9 +1068,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/system/backups/{filename}/download', [\App\Http\Controllers\Admin\AdminBackupController::class, 'download'])->name('system.backups.download');
     Route::delete('/system/backups/{filename}', [\App\Http\Controllers\Admin\AdminBackupController::class, 'destroy'])->name('system.backups.destroy');
 
-    // Software License Management & Key Generator
-    Route::get('/system/license', [\App\Http\Controllers\LicenseController::class, 'adminView'])->name('system.license');
-    Route::post('/system/license/generate', [\App\Http\Controllers\LicenseController::class, 'adminGenerate'])->name('system.license.generate');
 
     // Advanced SEO Management
     Route::get('/seo/tools', [\App\Http\Controllers\Admin\AdminSeoController::class, 'index'])->name('seo.tools');
