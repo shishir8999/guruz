@@ -80,6 +80,22 @@ interface HomeProps {
     marqueeSpeed?: number;
 }
 
+const getLogoUrl = (url?: string | null) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    if (url.startsWith('/storage/') || url.startsWith('/uploads/') || url.startsWith('/images/')) return url;
+    if (url.startsWith('storage/')) return `/${url}`;
+    if (url.startsWith('brands/')) return `/storage/${url}`;
+    return url.startsWith('/') ? url : `/${url}`;
+};
+
+const getBrandInitial = (name: string) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return '★';
+    const chars = Array.from(trimmed);
+    return chars[0]?.toUpperCase() || '★';
+};
+
 function FeatureBadgesAutoSlider({ badges }: { badges: any[] }) {
     const sliderRef = React.useRef<HTMLDivElement>(null);
     const [isPaused, setIsPaused] = React.useState(false);
@@ -403,23 +419,19 @@ export default function Home({
 
                     <div className="overflow-hidden w-full py-1">
                         <div className="flex items-center gap-3 sm:gap-4 animate-marquee-left hover:[animation-play-state:paused]" style={styleBrands}>
-                            {[...(brands && brands.length > 0 ? brands : [
-                                { id: 1, name: 'Apple', slug: 'apple', logo_url: '' },
-                                { id: 2, name: 'Samsung', slug: 'samsung', logo_url: '' },
-                                { id: 3, name: 'Logitech', slug: 'logitech', logo_url: '' },
-                                { id: 4, name: 'Anker', slug: 'anker', logo_url: '' },
-                                { id: 5, name: 'Baseus', slug: 'baseus', logo_url: '' },
-                                { id: 6, name: 'Xiaomi', slug: 'xiaomi', logo_url: '' },
-                                { id: 7, name: 'Sony', slug: 'sony', logo_url: '' },
-                            ]), ...(brands && brands.length > 0 ? brands : [
-                                { id: 101, name: 'Apple', slug: 'apple', logo_url: '' },
-                                { id: 102, name: 'Samsung', slug: 'samsung', logo_url: '' },
-                                { id: 103, name: 'Logitech', slug: 'logitech', logo_url: '' },
-                                { id: 104, name: 'Anker', slug: 'anker', logo_url: '' },
-                                { id: 105, name: 'Baseus', slug: 'baseus', logo_url: '' },
-                                { id: 106, name: 'Xiaomi', slug: 'xiaomi', logo_url: '' },
-                                { id: 107, name: 'Sony', slug: 'sony', logo_url: '' },
-                            ])].map((brand, i) => {
+                            {(() => {
+                                const sourceBrands = (brands && brands.length > 0) ? brands : [
+                                    { id: 1, name: 'Apple', slug: 'apple', logo_url: '' },
+                                    { id: 2, name: 'Samsung', slug: 'samsung', logo_url: '' },
+                                    { id: 3, name: 'Logitech', slug: 'logitech', logo_url: '' },
+                                    { id: 4, name: 'Anker', slug: 'anker', logo_url: '' },
+                                    { id: 5, name: 'Baseus', slug: 'baseus', logo_url: '' },
+                                    { id: 6, name: 'Xiaomi', slug: 'xiaomi', logo_url: '' },
+                                    { id: 7, name: 'Sony', slug: 'sony', logo_url: '' },
+                                ];
+                                // Duplicate for continuous seamless marquee animation
+                                const marqueeList = [...sourceBrands, ...sourceBrands];
+
                                 const colors = [
                                     'from-slate-700 to-slate-900',
                                     'from-blue-600 to-blue-800',
@@ -429,31 +441,48 @@ export default function Home({
                                     'from-orange-500 to-orange-700',
                                     'from-indigo-600 to-indigo-900',
                                 ];
-                                const cardColor = colors[i % colors.length];
 
-                                return (
-                                    <Link
-                                        key={i}
-                                        href={`/products?brand=${encodeURIComponent(brand.slug || brand.name.toLowerCase())}`}
-                                        className="flex flex-col items-center gap-1.5 p-1 rounded-xl hover:bg-slate-50 transition group text-center shrink-0 w-20 sm:w-24 cursor-pointer"
-                                    >
-                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-blue-600 shadow-2xs group-hover:scale-110 transition overflow-hidden border border-slate-200 shrink-0">
-                                            {brand.logo_url ? (
-                                                <div className="w-full h-full rounded-full bg-white flex items-center justify-center p-1.5 overflow-hidden">
-                                                    <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain" />
-                                                </div>
-                                            ) : (
-                                                <div className={`w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase`}>
-                                                    {brand.name.substring(0, 3)}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <span className="text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-emerald-600 transition">
-                                            {brand.name}
-                                        </span>
-                                    </Link>
-                                );
-                            })}
+                                return marqueeList.map((brand, i) => {
+                                    const cardColor = colors[i % colors.length];
+                                    const logoSrc = getLogoUrl(brand.logo_url);
+
+                                    return (
+                                        <Link
+                                            key={`${brand.id}-${i}`}
+                                            href={`/products?brand=${encodeURIComponent(brand.slug || brand.name.toLowerCase())}`}
+                                            className="flex flex-col items-center gap-1.5 p-1 rounded-xl hover:bg-slate-50 transition group text-center shrink-0 w-20 sm:w-24 cursor-pointer notranslate"
+                                            translate="no"
+                                        >
+                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-blue-600 shadow-2xs group-hover:scale-110 transition overflow-hidden border border-slate-200 shrink-0 notranslate" translate="no">
+                                                {logoSrc ? (
+                                                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center p-1.5 overflow-hidden">
+                                                        <img 
+                                                            src={logoSrc} 
+                                                            alt={brand.name} 
+                                                            className="w-full h-full object-contain"
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = 'none';
+                                                                const parent = e.currentTarget.parentElement;
+                                                                if (parent) {
+                                                                    parent.className = `w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase select-none notranslate`;
+                                                                    parent.innerHTML = `<span class="notranslate" translate="no">${getBrandInitial(brand.name)}</span>`;
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className={`w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase select-none notranslate`} translate="no">
+                                                        {getBrandInitial(brand.name)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <span className="notranslate text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-emerald-600 transition" translate="no">
+                                                {brand.name}
+                                            </span>
+                                        </Link>
+                                    );
+                                });
+                            })()}
                         </div>
                     </div>
                 </section>

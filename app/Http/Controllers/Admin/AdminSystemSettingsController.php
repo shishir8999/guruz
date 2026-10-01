@@ -196,25 +196,46 @@ class AdminSystemSettingsController extends Controller
     public function approveKyc(VendorKyc $kyc)
     {
         $kyc->update([
-            'status'      => 'approved',
+            'status'      => 'Approved',
             'reviewed_at' => now(),
+            'reviewed_by' => auth()->id(),
+            'rejection_reason' => null,
         ]);
 
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'active']);
+            \App\Models\UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
+            \App\Models\Product::where('shop_id', $kyc->shop_id)->update(['is_active' => true, 'status' => 'published']);
         }
 
-        return back()->with('success', 'Vendor KYC Approved!');
+        \Illuminate\Support\Facades\Cache::forget('home_featured_products');
+        \Illuminate\Support\Facades\Cache::forget('home_latest_products');
+        \Illuminate\Support\Facades\Cache::forget('home_flash_sale_products');
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
+
+        return back()->with('success', 'Vendor KYC Approved, Shop Activated & Products Published!');
     }
 
     public function rejectKyc(Request $request, VendorKyc $kyc)
     {
         $kyc->update([
-            'status'           => 'rejected',
+            'status'           => 'Rejected',
             'rejection_reason' => $request->input('reason', 'Documents incomplete.'),
             'reviewed_at'      => now(),
+            'reviewed_by'      => auth()->id(),
         ]);
-        return back()->with('success', 'Vendor KYC Rejected.');
+
+        if ($kyc->shop) {
+            $kyc->shop->update(['status' => 'rejected']);
+            \App\Models\Product::where('shop_id', $kyc->shop_id)->update(['is_active' => false, 'status' => 'draft']);
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('home_featured_products');
+        \Illuminate\Support\Facades\Cache::forget('home_latest_products');
+        \Illuminate\Support\Facades\Cache::forget('home_flash_sale_products');
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
+
+        return back()->with('success', 'Vendor KYC Rejected & Products Hidden.');
     }
 
     public function systemConfig()

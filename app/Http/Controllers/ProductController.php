@@ -17,15 +17,15 @@ class ProductController extends Controller
             return Category::orderBy('display_order')->get();
         });
 
-        $featuredProducts = Product::with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
-            ->where('is_active', true)
+        $featuredProducts = Product::published()
+            ->with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
             ->where('is_featured', true)
             ->latest()
             ->limit(10)
             ->get();
 
-        $latestProducts = Product::with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
-            ->where('is_active', true)
+        $latestProducts = Product::published()
+            ->with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
             ->latest()
             ->limit(20)
             ->get();
@@ -59,9 +59,9 @@ class ProductController extends Controller
         
         if ($guruzSpecialEnabled) {
             if (is_array($guruzSpecialProductsIds) && count($guruzSpecialProductsIds) > 0) {
-                $products = Product::with(['shop', 'category'])
+                $products = Product::published()
+                    ->with(['shop', 'category'])
                     ->whereIn('id', $guruzSpecialProductsIds)
-                    ->where('is_active', true)
                     ->get();
                 
                 foreach ($guruzSpecialProductsIds as $id) {
@@ -74,8 +74,8 @@ class ProductController extends Controller
 
             // Fallback if no specific products picked
             if (count($guruzSpecialProducts) === 0) {
-                $guruzSpecialProducts = Product::with(['shop', 'category'])
-                    ->where('is_active', true)
+                $guruzSpecialProducts = Product::published()
+                    ->with(['shop', 'category'])
                     ->latest()
                     ->limit(4)
                     ->get()
@@ -97,7 +97,7 @@ class ProductController extends Controller
 
         // Fetch Active Flash Sale
         $activeFlashSale = \App\Models\FlashSale::with(['products.product' => function($q) {
-                $q->with(['shop', 'category']);
+                $q->published()->with(['shop', 'category']);
             }])
             ->where('is_active', true)
             ->where(function($query) {
@@ -107,11 +107,17 @@ class ProductController extends Controller
             ->latest('starts_at')
             ->first();
 
-        $brands = \App\Models\Brand::latest()->limit(20)->get(['id', 'name', 'slug', 'logo_url']);
+        $brands = \Illuminate\Support\Facades\Cache::remember('home_brands', 600, function() {
+            return \App\Models\Brand::where('is_active', true)
+                ->orderByDesc('is_featured')
+                ->latest()
+                ->limit(24)
+                ->get(['id', 'name', 'slug', 'logo_url']);
+        });
         $marqueeSpeed = (int) \App\Models\SiteSetting::get('marquee_speed', '20');
 
-        $flashSaleProducts = Product::with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
-            ->where('is_active', true)
+        $flashSaleProducts = Product::published()
+            ->with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
             ->where('is_flash_sale', true)
             ->latest()
             ->get();
@@ -134,8 +140,8 @@ class ProductController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Product::with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug'])
-            ->where('is_active', true);
+        $query = Product::published()
+            ->with(['shop:id,name,slug,logo_url,rating', 'category:id,name,slug']);
 
         $section = $request->input('section');
         $sectionTitle = 'সব পণ্য (All Products)';
@@ -291,7 +297,7 @@ class ProductController extends Controller
         $categories = $categoriesQuery->limit(3)->get(['id', 'name', 'slug', 'image_url']);
 
         // Fuzzy match products (top 5)
-        $productsQuery = Product::where('is_active', true);
+        $productsQuery = Product::published();
         foreach ($tokens as $token) {
             $productsQuery->where(function ($subQ) use ($token) {
                 $subQ->where('name', 'like', "%{$token}%")
@@ -368,27 +374,27 @@ class ProductController extends Controller
 
     public function show(string $slug): Response
     {
-        $product = Product::with([
-            'shop:id,name,slug,logo_url,rating',
-            'category:id,name,slug',
-            'images',
-            'variants',
-            'reviews' => function($q) {
-                $q->where('is_verified', true)
-                  ->with('user:id,name,avatar_url')
-                  ->latest();
-            },
-        ])
+        $product = Product::published()
+            ->with([
+                'shop:id,name,slug,logo_url,rating',
+                'category:id,name,slug',
+                'images',
+                'variants',
+                'reviews' => function($q) {
+                    $q->where('is_verified', true)
+                      ->with('user:id,name,avatar_url')
+                      ->latest();
+                },
+            ])
             ->where(function($q) use ($slug) {
                 $q->where('slug', $slug)->orWhere('id', $slug);
             })
-            ->where('is_active', true)
             ->firstOrFail();
 
-        $relatedProducts = Product::with(['shop:id,name,slug'])
+        $relatedProducts = Product::published()
+            ->with(['shop:id,name,slug'])
             ->where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
-            ->where('is_active', true)
             ->inRandomOrder()
             ->limit(4)
             ->get();

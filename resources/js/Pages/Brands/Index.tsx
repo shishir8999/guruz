@@ -58,6 +58,22 @@ export default function BrandsIndex({ brands = [] }: BrandsIndexProps) {
         'from-purple-600 to-indigo-800',
     ];
 
+    const getLogoUrl = (url?: string | null) => {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+        if (url.startsWith('/storage/') || url.startsWith('/uploads/') || url.startsWith('/images/')) return url;
+        if (url.startsWith('storage/')) return `/${url}`;
+        if (url.startsWith('brands/')) return `/storage/${url}`;
+        return url.startsWith('/') ? url : `/${url}`;
+    };
+
+    const getBrandInitial = (name: string) => {
+        const trimmed = (name || '').trim();
+        if (!trimmed) return '★';
+        const chars = Array.from(trimmed);
+        return chars[0]?.toUpperCase() || '★';
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col pb-16 md:pb-0">
             <Head title="সকল শীর্ষ ও ভেরিফাইড ব্র্যান্ড — Guruz Brands" />
@@ -128,27 +144,41 @@ export default function BrandsIndex({ brands = [] }: BrandsIndexProps) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
                         {filteredBrands.map((brand, i) => {
                             const cardColor = colors[i % colors.length];
+                            const logoSrc = getLogoUrl(brand.logo_url);
                             return (
                                 <Link
                                     key={brand.id}
                                     href={`/products?brand=${encodeURIComponent(brand.slug || brand.name)}`}
-                                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 hover:shadow-lg hover:border-emerald-500 dark:hover:border-emerald-500 transition-all flex flex-col items-center text-center gap-3 group relative cursor-pointer"
+                                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 hover:shadow-lg hover:border-emerald-500 dark:hover:border-emerald-500 transition-all flex flex-col items-center text-center gap-3 group relative cursor-pointer notranslate"
+                                    translate="no"
                                 >
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-blue-600 shadow group-hover:scale-110 transition-transform duration-200 shrink-0 overflow-hidden">
-                                        {brand.logo_url ? (
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-blue-600 shadow group-hover:scale-110 transition-transform duration-200 shrink-0 overflow-hidden notranslate" translate="no">
+                                        {logoSrc ? (
                                             <div className="w-full h-full rounded-full bg-white flex items-center justify-center p-2 overflow-hidden">
-                                                <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain" />
+                                                <img 
+                                                    src={logoSrc} 
+                                                    alt={brand.name} 
+                                                    className="w-full h-full object-contain" 
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const parent = e.currentTarget.parentElement;
+                                                        if (parent) {
+                                                            parent.className = `w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase select-none notranslate`;
+                                                            parent.innerHTML = `<span class="notranslate" translate="no">${getBrandInitial(brand.name)}</span>`;
+                                                        }
+                                                    }}
+                                                />
                                             </div>
                                         ) : (
-                                            <div className={`w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase`}>
-                                                {brand.name.substring(0, 3)}
+                                            <div className={`w-full h-full rounded-full bg-gradient-to-br ${cardColor} flex items-center justify-center p-1 font-black text-white text-xs sm:text-sm tracking-wider uppercase select-none notranslate`} translate="no">
+                                                {getBrandInitial(brand.name)}
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="space-y-1 w-full">
-                                        <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-emerald-600 transition flex items-center justify-center gap-1">
-                                            <span>{brand.name}</span>
+                                    <div className="space-y-1 w-full notranslate" translate="no">
+                                        <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-emerald-600 transition flex items-center justify-center gap-1 notranslate" translate="no">
+                                            <span className="notranslate" translate="no">{brand.name}</span>
                                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                         </h3>
 

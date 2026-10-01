@@ -28,14 +28,13 @@ class SellerProductController extends Controller
         $shop = Shop::where('user_id', $user->id)->first();
 
         if (!$shop) {
+            $isAdmin = in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($user->hasRole && $user->hasRole('admin'));
             $shop = Shop::create([
                 'user_id' => $user->id,
                 'name'    => ($user->name ?? 'Vendor') . "'s Shop",
                 'slug'    => \Illuminate\Support\Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
-                'status'  => 'active',
+                'status'  => $isAdmin ? 'active' : 'pending',
             ]);
-        } elseif ($shop->status === 'pending') {
-            $shop->update(['status' => 'active']);
         }
 
         return $shop;
@@ -118,9 +117,12 @@ class SellerProductController extends Controller
     public function store(Request $request)
     {
         $shop = $this->getShop();
-        if ($shop->status === 'pending') {
-            $shop->update(['status' => 'active']);
-        }
+        $shop->loadMissing('kyc');
+        $user = auth()->user();
+
+        $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
+            || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
+            || ($user->hasRole && $user->hasRole('admin'));
 
         $data = $request->validate([
             'name'               => 'required|string|max:255',
@@ -198,7 +200,8 @@ class SellerProductController extends Controller
             'materials'        => $data['materials'] ?? [],
             'tags'             => $data['tags'] ?? [],
             'attributes'       => json_encode($formattedAttributes),
-            'is_active'        => $data['is_active'] ?? true,
+            'is_active'        => $isKycApproved ? ($data['is_active'] ?? true) : false,
+            'status'           => ($isKycApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
             'is_featured'      => $data['is_featured'] ?? false,
         ]);
 
@@ -244,7 +247,11 @@ class SellerProductController extends Controller
             }
         } catch (\Throwable $e) {}
 
-        return redirect()->route('seller.products.index')->with('success', 'Product added successfully!');
+        if (!$isKycApproved) {
+            return redirect()->route('seller.products.index')->with('warning', 'পণ্যটি ড্রাফট হিসেবে সেভ হয়েছে। আপনার শপের কেওয়াইসি (KYC) সুপার অ্যাডমিন দ্বারা ভেরিফাই ও অ্যাপ্রুভ না হওয়া পর্যন্ত পণ্যটি পাবলিক হবে না।');
+        }
+
+        return redirect()->route('seller.products.index')->with('success', 'পণ্য সফলভাবে প্রকাশ করা হয়েছে!');
     }
 
     // ─── Edit Product Form ────────────────────────────
@@ -284,8 +291,17 @@ class SellerProductController extends Controller
             abort_if($product->shop_id !== $shop->id, 403);
         }
 
+        $shop->loadMissing('kyc');
+        $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
+            || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
+            || ($user->hasRole && $user->hasRole('admin'));
+
         // Quick toggle status handling
         if ($request->has('is_active') && !$request->has('name')) {
+            if (!$isKycApproved && $request->is_active) {
+                return back()->with('error', 'আপনার কেওয়াইসি (KYC) এখনও অ্যাপ্রুভ হয়নি। কেওয়াইসি ভেরিফিকেশন সম্পন্ন ও অ্যাপ্রুভ হওয়ার পূর্বে পণ্য অ্যাক্টিভ/পাবলিক করা যাবে না।');
+            }
+
             $product->update([
                 'is_active' => (bool)$request->is_active,
                 'status'    => $request->is_active ? 'published' : 'draft',
@@ -354,8 +370,8 @@ class SellerProductController extends Controller
             'sizes'            => $data['sizes'] ?? $product->sizes ?? [],
             'materials'        => $data['materials'] ?? $product->materials ?? [],
             'tags'             => $data['tags'] ?? $product->tags ?? [],
-            'is_active'        => $data['is_active'] ?? true,
-            'status'           => ($data['is_active'] ?? true) ? 'published' : 'draft',
+            'is_active'        => $isKycApproved ? ($data['is_active'] ?? true) : false,
+            'status'           => ($isKycApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
             'is_featured'      => $data['is_featured'] ?? false,
         ]);
 
@@ -376,7 +392,11 @@ class SellerProductController extends Controller
             }
         }
 
-        return redirect()->route('seller.products.index')->with('success', 'Product updated successfully!');
+        if (!$isKycApproved && ($data['is_active'] ?? true)) {
+            return redirect()->route('seller.products.index')->with('warning', 'পণ্য আপডেট হয়েছে, তবে কেওয়াইসি পেন্ডিং থাকায় পণ্যটি ড্রাফট মোডে রাখা হয়েছে। কেওয়াইসি অ্যাপ্রুভ হলে এটি স্বয়ংক্রিয়ভাবে পাবলিক হবে।');
+        }
+
+        return redirect()->route('seller.products.index')->with('success', 'পণ্য সফলভাবে আপডেট করা হয়েছে!');
     }
 
     // ─── Delete Product ───────────────────────────────

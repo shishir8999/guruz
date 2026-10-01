@@ -96,10 +96,15 @@ class SellerProductImportController extends Controller
             [
                 'name'        => ($user->name ?? 'Vendor') . "'s Shop",
                 'slug'        => Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
-                'status'      => 'active',
-                'is_approved' => true,
+                'status'      => 'pending',
+                'is_approved' => false,
             ]
         );
+        $shop->loadMissing('kyc');
+        $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
+            || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
+            || ($user->hasRole && $user->hasRole('admin'));
+
         $shopId = $shop->id;
         $file = $request->file('csv_file');
         $path = $file->getRealPath();
@@ -215,7 +220,8 @@ class SellerProductImportController extends Controller
                 'stock_quantity' => $stock,
                 'description'    => $description,
                 'unit'           => $unitName,
-                'is_active'      => true,
+                'is_active'      => $isKycApproved,
+                'status'         => $isKycApproved ? 'published' : 'draft',
             ]);
 
             $importedCount++;
@@ -223,6 +229,10 @@ class SellerProductImportController extends Controller
 
         fclose($handle);
 
-        return redirect()->back()->with('success', "Successfully imported {$importedCount} products into your shop inventory!");
+        $msg = $isKycApproved 
+            ? "Successfully imported {$importedCount} products into your shop inventory!"
+            : "সফলভাবে {$importedCount}টি পণ্য ড্রাফট হিসেবে ইম্পোর্ট হয়েছে। আপনার কেওয়াইসি ভেরিফিকেশন সুপার অ্যাডমিন দ্বারা সম্পন্ন হলে পণ্যগুলো স্বয়ংক্রিয়ভাবে পাবলিক হবে।";
+
+        return redirect()->back()->with('success', $msg);
     }
 }

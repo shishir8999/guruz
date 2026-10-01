@@ -58,6 +58,16 @@ class Shop extends Model
         return $this->hasMany(ShopFollower::class);
     }
 
+    public function kyc(): HasOne
+    {
+        return $this->hasOne(VendorKyc::class, 'shop_id');
+    }
+
+    public function getIsKycApprovedAttribute(): bool
+    {
+        return $this->kyc && strtolower($this->kyc->status ?? '') === 'approved';
+    }
+
     public function getLogoAttribute(): ?string
     {
         return $this->logo_url;

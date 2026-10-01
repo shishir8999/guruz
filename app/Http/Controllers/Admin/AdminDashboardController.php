@@ -1119,9 +1119,15 @@ class AdminDashboardController extends Controller
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'active']);
             UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
+            Product::where('shop_id', $kyc->shop_id)->update(['is_active' => true, 'status' => 'published']);
         }
         
-        return back()->with('success', 'Vendor KYC Approved & Shop Activated!');
+        \Illuminate\Support\Facades\Cache::forget('home_featured_products');
+        \Illuminate\Support\Facades\Cache::forget('home_latest_products');
+        \Illuminate\Support\Facades\Cache::forget('home_flash_sale_products');
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
+
+        return back()->with('success', 'Vendor KYC Approved, Shop Activated & All Products Published!');
     }
 
     public function rejectKyc(Request $request, $id)
@@ -1140,9 +1146,15 @@ class AdminDashboardController extends Controller
         
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'rejected']);
+            Product::where('shop_id', $kyc->shop_id)->update(['is_active' => false, 'status' => 'draft']);
         }
         
-        return back()->with('success', 'Vendor KYC Rejected!');
+        \Illuminate\Support\Facades\Cache::forget('home_featured_products');
+        \Illuminate\Support\Facades\Cache::forget('home_latest_products');
+        \Illuminate\Support\Facades\Cache::forget('home_flash_sale_products');
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
+
+        return back()->with('success', 'Vendor KYC Rejected & Products Hidden!');
     }
 
     public function categoryRequests(Request $request): Response

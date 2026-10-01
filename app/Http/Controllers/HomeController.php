@@ -19,16 +19,16 @@ class HomeController extends Controller
         });
         
         $featuredProducts = Cache::remember('home_featured_products', 3600, function () {
-            return Product::with(['shop', 'category'])
-                ->where('is_active', true)
+            return Product::published()
+                ->with(['shop', 'category'])
                 ->where('is_featured', true)
                 ->limit(24)
                 ->get();
         });
 
         $latestProducts = Cache::remember('home_latest_products', 1800, function () {
-            return Product::with(['shop', 'category'])
-                ->where('is_active', true)
+            return Product::published()
+                ->with(['shop', 'category'])
                 ->orderBy('created_at', 'desc')
                 ->limit(36)
                 ->get();
@@ -67,9 +67,9 @@ class HomeController extends Controller
         
         if ($guruzSpecialEnabled) {
             if (is_array($guruzSpecialProductsIds) && count($guruzSpecialProductsIds) > 0) {
-                $products = \App\Models\Product::with(['shop', 'category'])
+                $products = \App\Models\Product::published()
+                    ->with(['shop', 'category'])
                     ->whereIn('id', $guruzSpecialProductsIds)
-                    ->where('is_active', true)
                     ->get();
                 
                 // Sort to maintain saved order
@@ -83,8 +83,8 @@ class HomeController extends Controller
 
             // Fallback if no specific products picked
             if (count($guruzSpecialProducts) === 0) {
-                $guruzSpecialProducts = \App\Models\Product::with(['shop', 'category'])
-                    ->where('is_active', true)
+                $guruzSpecialProducts = \App\Models\Product::published()
+                    ->with(['shop', 'category'])
                     ->latest()
                     ->limit(12)
                     ->get()
@@ -106,7 +106,7 @@ class HomeController extends Controller
 
         // Fetch Active Flash Sale
         $activeFlashSale = \App\Models\FlashSale::with(['products.product' => function($q) {
-                $q->with(['shop', 'category']);
+                $q->published()->with(['shop', 'category']);
             }])
             ->where('is_active', true)
             ->where(function($query) {
@@ -118,8 +118,8 @@ class HomeController extends Controller
 
         // Fetch Flash Sale Products (Marked as Flash Sale on creation/editing)
         $flashSaleProducts = Cache::remember('home_flash_sale_products', 1800, function () {
-            return Product::with(['shop', 'category'])
-                ->where('is_active', true)
+            return Product::published()
+                ->with(['shop', 'category'])
                 ->where('is_flash_sale', true)
                 ->latest()
                 ->get();

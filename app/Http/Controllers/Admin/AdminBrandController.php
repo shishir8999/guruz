@@ -34,6 +34,18 @@ class AdminBrandController extends Controller
         if ($request->hasFile('logo')) {
             $path = StorageHelper::storePublicly($request->file('logo'), 'brands');
             $data['logo_url'] = '/storage/' . $path;
+        } elseif (!empty($data['logo_url'])) {
+            $url = trim($data['logo_url']);
+            if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                if (str_starts_with($url, 'brands/')) {
+                    $url = '/storage/' . $url;
+                } elseif (str_starts_with($url, 'storage/')) {
+                    $url = '/' . $url;
+                } elseif (!str_starts_with($url, '/')) {
+                    $url = '/' . $url;
+                }
+            }
+            $data['logo_url'] = $url;
         }
 
         if (empty($data['slug'])) {
@@ -52,6 +64,9 @@ class AdminBrandController extends Controller
         }
 
         Brand::create($data);
+        \Illuminate\Support\Facades\Cache::forget('home_brands');
+        \Illuminate\Support\Facades\Cache::forget('all_brands');
+
         return back()->with('success', 'Brand created.');
     }
 
@@ -63,6 +78,8 @@ class AdminBrandController extends Controller
                 'is_featured' => $newVal,
                 'is_active'   => $newVal,
             ]);
+            \Illuminate\Support\Facades\Cache::forget('home_brands');
+            \Illuminate\Support\Facades\Cache::forget('all_brands');
             return back()->with('success', 'Brand status updated.');
         }
 
@@ -79,6 +96,18 @@ class AdminBrandController extends Controller
             StorageHelper::deletePublicly($brand->logo_url);
             $path = StorageHelper::storePublicly($request->file('logo'), 'brands');
             $data['logo_url'] = '/storage/' . $path;
+        } elseif (!empty($data['logo_url'])) {
+            $url = trim($data['logo_url']);
+            if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
+                if (str_starts_with($url, 'brands/')) {
+                    $url = '/storage/' . $url;
+                } elseif (str_starts_with($url, 'storage/')) {
+                    $url = '/' . $url;
+                } elseif (!str_starts_with($url, '/')) {
+                    $url = '/' . $url;
+                }
+            }
+            $data['logo_url'] = $url;
         }
 
         if (!empty($data['slug'])) {
@@ -92,6 +121,9 @@ class AdminBrandController extends Controller
         }
 
         $brand->update($data);
+        \Illuminate\Support\Facades\Cache::forget('home_brands');
+        \Illuminate\Support\Facades\Cache::forget('all_brands');
+
         return back()->with('success', 'Brand updated.');
     }
 
@@ -99,6 +131,9 @@ class AdminBrandController extends Controller
     {
         StorageHelper::deletePublicly($brand->logo_url);
         $brand->delete();
+        \Illuminate\Support\Facades\Cache::forget('home_brands');
+        \Illuminate\Support\Facades\Cache::forget('all_brands');
+
         return back()->with('success', 'Brand deleted.');
     }
 }

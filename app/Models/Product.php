@@ -50,7 +50,35 @@ class Product extends Model
 
     public function scopePublished($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('products.is_active', true)
+            ->where(function ($q) {
+                // 1. Direct admin products (no shop attached)
+                $q->whereNull('products.shop_id')
+                  ->orWhereHas('shop', function ($shopQuery) {
+                      $shopQuery->where(function ($sq) {
+                          // 2. Admin owned shop (always published if product is_active)
+                          $sq->whereHas('owner', function ($userQuery) {
+                              $userQuery->whereIn('role', ['admin', 'super_admin', 'superadmin'])
+                                  ->orWhereHas('roles', function ($rq) {
+                                      $rq->whereIn('role', ['admin', 'super_admin', 'superadmin']);
+                                  })
+                                  ->orWhereIn('email', [
+                                      'admin@guruz.com',
+                                      'shishirbarai2050@gmail.com',
+                                      'shishirbarai019@gmail.com',
+                                      'shishirbarai01982708789@gmail.com',
+                                  ]);
+                          })
+                          // 3. Vendor shop: shop must be active AND KYC must be approved by Super Admin
+                          ->orWhere(function ($vendorSq) {
+                              $vendorSq->whereIn('status', ['active', 'approved'])
+                                       ->whereHas('kyc', function ($kycQuery) {
+                                           $kycQuery->whereRaw('LOWER(status) = ?', ['approved']);
+                                       });
+                          });
+                      });
+                  });
+            });
     }
 
     // ─── Relations ───────────────────────────────────
