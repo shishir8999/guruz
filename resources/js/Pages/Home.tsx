@@ -5,7 +5,7 @@ import { Footer } from '@/Components/Footer';
 import { ProductCard, type Product } from '@/Components/ProductCard';
 import { 
     Zap, ShieldCheck, HelpCircle, 
-    Headset, Gift, ChevronRight, Award, CheckCircle2, Star, PackagePlus,
+    Headset, Gift, ChevronRight, ChevronLeft, Award, CheckCircle2, Star, PackagePlus,
     User, ChevronsRight, Truck, RefreshCw
 } from 'lucide-react';
 import { HeroCarousel } from '@/Components/HeroCarousel';
@@ -148,84 +148,83 @@ function FeatureBadgesAutoSlider({ badges }: { badges: any[] }) {
     );
 }
 
-function GuruzVerifiedAutoSlider({ products, intervalMs = 2500, sliderId = 'slider-1' }: { products: Product[]; intervalMs?: number; sliderId?: string }) {
-    const [currentIndex, setCurrentIndex] = React.useState(0);
-    const [isTransitioning, setIsTransitioning] = React.useState(true);
-    const [isPaused, setIsPaused] = React.useState(false);
+function GuruzVerifiedAutoSlider({ products, intervalMs = 5000, sliderId = 'slider-1' }: { products: Product[]; intervalMs?: number; sliderId?: string }) {
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+    const [isHovered, setIsHovered] = React.useState(false);
 
-    // Ensure we have at least 8 items for a rich slider
-    const baseItems = React.useMemo(() => {
-        if (!products || products.length === 0) return [];
-        let items = [...products];
-        while (items.length < 8) {
-            items = [...items, ...products];
-        }
-        return items.slice(0, 12);
-    }, [products]);
-
-    // Append 4 clone items at the end for seamless 1-direction infinite loop
-    const displayItems = React.useMemo(() => [...baseItems, ...baseItems.slice(0, 4)], [baseItems]);
+    const scroll = (direction: 'left' | 'right') => {
+        if (!scrollRef.current) return;
+        const container = scrollRef.current;
+        const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).clientWidth + 16 : 220;
+        const scrollAmount = direction === 'left' ? -cardWidth * 2 : cardWidth * 2;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    };
 
     React.useEffect(() => {
-        if (displayItems.length === 0 || isPaused) return;
+        if (!products || products.length <= 4 || isHovered) return;
 
         const interval = setInterval(() => {
-            setCurrentIndex((prev) => {
-                setIsTransitioning(true);
-                return prev + 1;
-            });
+            if (!scrollRef.current || isHovered) return;
+            const container = scrollRef.current;
+            const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).clientWidth + 16 : 220;
+            const maxScroll = container.scrollWidth - container.clientWidth;
+
+            if (container.scrollLeft >= maxScroll - 10) {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+            }
         }, intervalMs);
 
         return () => clearInterval(interval);
-    }, [displayItems.length, isPaused, intervalMs]);
-
-    // Seamless reset when index reaches baseItems.length
-    React.useEffect(() => {
-        if (currentIndex >= baseItems.length) {
-            const timer = setTimeout(() => {
-                setIsTransitioning(false);
-                setCurrentIndex(0);
-            }, 500); // match transition duration 500ms
-            return () => clearTimeout(timer);
-        }
-    }, [currentIndex, baseItems.length]);
+    }, [products, isHovered, intervalMs]);
 
     if (!products || products.length === 0) return null;
 
     return (
         <div 
             id={sliderId}
-            className="overflow-hidden w-full py-1 relative z-10"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onMouseMove={() => !isPaused && setIsPaused(true)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
+            className="relative group/slider w-full py-1"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsHovered(true)}
+            onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
         >
-            <div 
-                className={`flex gap-3 sm:gap-4 ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
+            {/* Prev Button */}
+            <button
+                type="button"
+                onClick={() => scroll('left')}
+                aria-label="Previous products"
+                className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
             >
-                {displayItems.map((p, idx) => (
+                <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Next Button */}
+            <button
+                type="button"
+                onClick={() => scroll('right')}
+                aria-label="Next products"
+                className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
+            >
+                <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Products Row */}
+            <div 
+                ref={scrollRef}
+                className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1 px-0.5"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+                {products.map((p, idx) => (
                     <div 
                         key={`${sliderId}-card-${p.id}-${idx}`}
-                        className="shrink-0 w-[calc((100%-12px)/2)] sm:w-[calc((100%-48px)/4)]"
+                        className="shrink-0 w-[calc((100%-12px)/2)] sm:w-[calc((100%-48px)/4)] lg:w-[calc((100%-64px)/5)]"
                     >
                         <ProductCard product={p} />
                     </div>
                 ))}
             </div>
-
-            {/* Desktop & Mobile Step Translation Scoped strictly to this sliderId */}
-            <style>{`
-                #${sliderId} > div {
-                    transform: translateX(calc(-${currentIndex} * (100% + 12px) / 2));
-                }
-                @media (min-width: 640px) {
-                    #${sliderId} > div {
-                        transform: translateX(calc(-${currentIndex} * (100% + 16px) / 4)) !important;
-                    }
-                }
-            `}</style>
         </div>
     );
 }

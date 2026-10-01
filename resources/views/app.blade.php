@@ -291,6 +291,14 @@
             .VIpgJd-ZVi9od-vH1Gmf-ibnC6b {
                 display: none !important;
                 visibility: hidden !important;
+                pointer-events: none !important;
+                opacity: 0 !important;
+                position: absolute !important;
+                left: -99999px !important;
+                top: -99999px !important;
+                width: 0 !important;
+                height: 0 !important;
+                z-index: -99999 !important;
             }
 
             body {

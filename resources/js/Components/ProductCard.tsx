@@ -131,29 +131,30 @@ export function ProductCard({ product, compact = false }: { product: Product; co
     };
 
     return (
-        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full">
-            <Link
-                href={`/products/${product.slug}`}
-                prefetch="hover"
-                className="relative block overflow-hidden bg-white h-40 md:h-48 lg:h-[280px]"
-            >
-                {product.primary_image_url && !imgError ? (
-                    <img
-                        src={product.primary_image_url}
-                        alt={product.name}
-                        loading="lazy"
-                        decoding="async"
-                        onError={() => setImgError(true)}
-                        className={`w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 ${isLocked ? 'blur-sm grayscale-[0.5]' : ''}`}
-                    />
-                ) : (
-                    <div className={`w-full h-full flex flex-col items-center justify-center bg-purple-50 text-purple-600 ${isLocked ? 'blur-sm grayscale-[0.5]' : ''}`}>
-                        <ShoppingCart className="w-10 h-10 opacity-80" strokeWidth={1.5} />
-                    </div>
-                )}
+        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-shadow duration-200 flex flex-col justify-between h-full">
+            <div className="relative block overflow-hidden bg-white h-40 md:h-48 lg:h-[280px]">
+                <Link
+                    href={`/products/${product.slug}`}
+                    className="block w-full h-full"
+                >
+                    {product.primary_image_url && !imgError ? (
+                        <img
+                            src={product.primary_image_url}
+                            alt={product.name}
+                            loading="lazy"
+                            decoding="async"
+                            onError={() => setImgError(true)}
+                            className={`w-full h-full object-contain pointer-events-none ${isLocked ? 'blur-sm grayscale-[0.5]' : ''}`}
+                        />
+                    ) : (
+                        <div className={`w-full h-full flex flex-col items-center justify-center bg-purple-50 text-purple-600 ${isLocked ? 'blur-sm grayscale-[0.5]' : ''}`}>
+                            <ShoppingCart className="w-10 h-10 opacity-80" strokeWidth={1.5} />
+                        </div>
+                    )}
+                </Link>
 
                 {isLocked && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/40 text-white p-2 text-center backdrop-blur-[2px]">
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/40 text-white p-2 text-center backdrop-blur-[2px] pointer-events-none">
                         <div className="bg-slate-900/80 p-2 rounded-full mb-1">
                             <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                         </div>
@@ -164,7 +165,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
                 )}
 
                 {discount > 0 && (
-                    <div className="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                    <div className="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
                         -{discount}%
                     </div>
                 )}
@@ -173,26 +174,25 @@ export function ProductCard({ product, compact = false }: { product: Product; co
                     type="button"
                     onClick={toggleWishlist}
                     aria-label="Wishlist"
-                    className={`absolute top-2 right-2 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-300 active:scale-90 ${
+                    className={`absolute top-2 right-2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md flex items-center justify-center transition-colors ${
                         isFav 
-                            ? 'bg-rose-500 text-white shadow-rose-500/40 ring-2 ring-rose-300 scale-105' 
-                            : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:scale-110'
+                            ? 'bg-rose-500 text-white shadow-rose-500/40 ring-2 ring-rose-300' 
+                            : 'bg-white/90 text-slate-400 hover:text-rose-500 hover:bg-rose-50'
                     }`}
                     title={isFav ? "Remove from Favorites" : "Add to Favorites"}
                 >
                     <Heart 
-                        className={`w-4 h-4 transition-transform duration-300 ${
-                            isFav ? 'fill-white text-white scale-110' : 'text-slate-400 hover:text-rose-500'
+                        className={`w-4 h-4 transition-colors ${
+                            isFav ? 'fill-white text-white' : 'text-slate-400 hover:text-rose-500'
                         }`} 
                     />
                 </button>
-            </Link>
+            </div>
 
             <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-1">
                 <div>
                     <Link
                         href={`/products/${product.slug}`}
-                        prefetch="hover"
                         className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight"
                     >
                         {product.name}

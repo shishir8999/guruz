@@ -484,6 +484,12 @@ body {
   height: 0 !important;
 }
 
+html.nprogress-busy,
+body.nprogress-busy,
+.nprogress-busy * {
+  cursor: inherit !important;
+}
+
 /* 🚫 Completely eliminate all Google Translate floating popup widgets, spinners, banners, and tooltips */
 .goog-te-banner-frame,
 iframe.goog-te-banner-frame,
@@ -638,7 +644,6 @@ button:active,
 [role="button"]:active,
 .cursor-pointer:active {
   color: var(--theme-primary-dark, #15803d) !important;
-  transform: scale(0.985);
 }
 
 /* 5. Clicked & Focused State: Keeps text color changed while clickable/active */

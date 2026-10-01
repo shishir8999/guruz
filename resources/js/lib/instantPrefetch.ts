@@ -58,7 +58,7 @@ export function initInstantNavigation() {
         if (hoverTimeout) clearTimeout(hoverTimeout);
         hoverTimeout = setTimeout(() => {
             prefetchUrl(href);
-        }, 40);
+        }, 180);
     };
 
     const handlePointerOut = () => {
