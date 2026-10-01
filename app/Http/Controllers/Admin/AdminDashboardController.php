@@ -1005,11 +1005,13 @@ class AdminDashboardController extends Controller
         $shops = Shop::select('id', 'name')->get();
         $categories = Category::select('id', 'name')->get();
         $brands = Brand::select('id', 'name')->get();
+        $units = \App\Models\Unit::select('id', 'name')->where('is_active', true)->get();
 
         return Inertia::render('Admin/AddProduct', [
             'shops' => $shops,
             'categories' => $categories,
             'brands' => $brands,
+            'units' => $units,
         ]);
     }
 
@@ -1029,6 +1031,7 @@ class AdminDashboardController extends Controller
         $shops = Shop::select('id', 'name')->get();
         $categories = Category::select('id', 'name')->get();
         $brands = Brand::select('id', 'name')->get();
+        $units = \App\Models\Unit::select('id', 'name')->where('is_active', true)->get();
         $specialIds = json_decode(\App\Models\SiteSetting::get('guruz_special_products', '[]'), true) ?: [];
 
         return Inertia::render('Admin/EditProduct', [
@@ -1036,6 +1039,7 @@ class AdminDashboardController extends Controller
             'shops' => $shops,
             'categories' => $categories,
             'brands' => $brands,
+            'units' => $units,
             'is_guruz_special' => in_array($product->id, $specialIds),
         ]);
     }

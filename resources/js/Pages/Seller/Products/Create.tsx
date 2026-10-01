@@ -56,6 +56,8 @@ export default function SellerProductCreate({
         tags: [] as string[],
     });
 
+    const [localUnits, setLocalUnits] = useState<Unit[]>(units);
+
     const [aiHint, setAiHint] = useState('');
     const [isAiGenerating, setIsAiGenerating] = useState(false);
     const [mainPreview, setMainPreview] = useState<string | null>(null);
@@ -65,6 +67,61 @@ export default function SellerProductCreate({
 
     const mainImageRef = useRef<HTMLInputElement>(null);
     const galleryImageRef = useRef<HTMLInputElement>(null);
+
+    const handleAddUnit = async () => {
+        const { value: unitName } = await Swal.fire({
+            title: 'নতুন ইউনিট যোগ করুন',
+            input: 'text',
+            inputLabel: 'ইউনিটের নাম (যেমন: Piece, Kg, Box, Meter)',
+            inputPlaceholder: 'ইউনিটের নাম লিখুন...',
+            showCancelButton: true,
+            confirmButtonText: 'যোগ করুন',
+            cancelButtonText: 'বাতিল',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'ইউনিটের নাম আবশ্যক!';
+                }
+            }
+        });
+
+        if (unitName && unitName.trim()) {
+            try {
+                const res = await axios.post('/seller/unit', {
+                    name: unitName.trim(),
+                    short_name: unitName.trim(),
+                    is_active: true
+                }, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (res.data && res.data.unit) {
+                    const newUnit = res.data.unit;
+                    setLocalUnits(prev => {
+                        if (!prev.some(u => u.id === newUnit.id)) {
+                            return [...prev, newUnit];
+                        }
+                        return prev;
+                    });
+                    setData('unit_id', String(newUnit.id));
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ইউনিট যোগ করা হয়েছে!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ভুল হয়েছে',
+                    text: err.response?.data?.message || 'ইউনিট যোগ করা সম্ভব হয়নি।'
+                });
+            }
+        }
+    };
 
     // Color options state
     const [colorsList, setColorsList] = useState<{ name: string; hex: string }[]>([
@@ -473,21 +530,23 @@ export default function SellerProductCreate({
 
                                     {/* Unit */}
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1.5">ইউনিট</label>
+                                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ইউনিট</label>
                                         <div className="flex gap-1.5">
                                             <select
                                                 value={data.unit_id}
                                                 onChange={e => setData('unit_id', e.target.value)}
-                                                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-800 focus:outline-none"
+                                                className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none"
                                             >
                                                 <option value="">ইউনিট নির্বাচন করুন</option>
-                                                {units.map(u => (
+                                                {localUnits.map(u => (
                                                     <option key={u.id} value={u.id}>{u.name}</option>
                                                 ))}
                                             </select>
                                             <button
                                                 type="button"
-                                                className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 rounded-xl hover:bg-emerald-100 transition"
+                                                onClick={handleAddUnit}
+                                                title="নতুন ইউনিট যোগ করুন"
+                                                className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 px-3 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition cursor-pointer flex items-center justify-center shrink-0"
                                             >
                                                 <Plus size={16} />
                                             </button>

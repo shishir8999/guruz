@@ -22,7 +22,10 @@ class AdminUnitController extends Controller
             'name'       => 'required|string|max:100|unique:units,name',
             'short_name' => 'nullable|string|max:20',
         ]);
-        Unit::create($data);
+        $unit = Unit::create($data);
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json(['success' => true, 'unit' => $unit]);
+        }
         return back()->with('success', 'Unit created.');
     }
 

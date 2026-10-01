@@ -66,6 +66,10 @@ class SellerUnitController extends Controller
             'is_active'  => $request->is_active ?? true
         ]);
 
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json(['success' => true, 'unit' => $unit]);
+        }
+
         return redirect()->back()->with('success', 'Unit created successfully');
     }
 

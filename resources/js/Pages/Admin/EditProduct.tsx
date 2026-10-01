@@ -7,7 +7,64 @@ import WarrantySelector from '@/Components/WarrantySelector';
 
 export default function EditProduct() {
     const { props } = usePage<any>();
-    const { shops = [], categories = [], brands = [], product = {}, is_guruz_special = false } = props;
+    const { shops = [], categories = [], brands = [], units = [], product = {}, is_guruz_special = false } = props;
+
+    const [localUnits, setLocalUnits] = useState<{ id?: number; name: string }[]>(
+        units && units.length > 0 ? units : [{ name: 'Pcs' }, { name: 'Kg' }, { name: 'Ltr' }]
+    );
+
+    const handleAddAdminUnit = async () => {
+        const { value: unitName } = await Swal.fire({
+            title: 'Add New Unit',
+            input: 'text',
+            inputLabel: 'Unit Name (e.g. Pcs, Kg, Box, Meter)',
+            inputPlaceholder: 'Enter unit name...',
+            showCancelButton: true,
+            confirmButtonText: 'Add Unit',
+            cancelButtonText: 'Cancel',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Unit name is required!';
+                }
+            }
+        });
+
+        if (unitName && unitName.trim()) {
+            try {
+                const res = await axios.post('/admin/units', {
+                    name: unitName.trim(),
+                    short_name: unitName.trim(),
+                    is_active: true
+                }, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const newUnit = res.data?.unit || { name: unitName.trim() };
+                setLocalUnits(prev => {
+                    if (!prev.some(u => u.name.toLowerCase() === newUnit.name.toLowerCase())) {
+                        return [...prev, newUnit];
+                    }
+                    return prev;
+                });
+                setUnit(newUnit.name);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Unit Added!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err.response?.data?.message || 'Could not add unit.'
+                });
+            }
+        }
+    };
 
     const [aiHint, setAiHint] = useState('');
     const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -342,14 +399,15 @@ export default function EditProduct() {
                                             className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300"
                                         >
                                             <option value="">Select unit</option>
-                                            <option value="pcs">Pcs</option>
-                                            <option value="kg">Kg</option>
-                                            <option value="ltr">Ltr</option>
+                                            {localUnits.map((u: any, idx: number) => (
+                                                <option key={u.id || idx} value={u.name}>{u.name}</option>
+                                            ))}
                                         </select>
                                         <button
                                             type="button"
-                                            onClick={() => Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Use Units Manager to add a new unit.', showConfirmButton: false, timer: 3000, timerProgressBar: true })}
-                                            className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl font-bold text-sm border border-slate-200 dark:border-slate-700"
+                                            onClick={handleAddAdminUnit}
+                                            title="Add Unit"
+                                            className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl font-bold text-sm border border-slate-200 dark:border-slate-700 cursor-pointer transition"
                                         >
                                             +
                                         </button>

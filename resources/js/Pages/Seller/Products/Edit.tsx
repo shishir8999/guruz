@@ -56,6 +56,14 @@ export default function SellerProductEdit({
     units: Unit[];
     attributes: Attribute[];
 }) {
+    const initialUnit = product.unit_id 
+        ? String(product.unit_id) 
+        : (units.find(u => u.name.toLowerCase() === product.unit?.toLowerCase())?.id 
+            ? String(units.find(u => u.name.toLowerCase() === product.unit?.toLowerCase())?.id) 
+            : '');
+
+    const [localUnits, setLocalUnits] = useState<Unit[]>(units);
+
     const { data, setData, processing, errors } = useForm({
         _method: 'PUT',
         name: product.name || '',
@@ -68,7 +76,7 @@ export default function SellerProductEdit({
         sku: product.sku || '',
         category_id: product.category_id ? String(product.category_id) : '',
         brand_id: product.brand_id ? String(product.brand_id) : '',
-        unit_id: product.unit_id ? String(product.unit_id) : '',
+        unit_id: initialUnit,
         weight: product.weight ? String(product.weight) : '',
         warranty: product.warranty_type || 'No warranty',
         is_retail: product.is_retail ?? true,
@@ -95,6 +103,61 @@ export default function SellerProductEdit({
 
     const mainImageRef = useRef<HTMLInputElement>(null);
     const galleryImageRef = useRef<HTMLInputElement>(null);
+
+    const handleAddUnit = async () => {
+        const { value: unitName } = await Swal.fire({
+            title: 'নতুন ইউনিট যোগ করুন',
+            input: 'text',
+            inputLabel: 'ইউনিটের নাম (যেমন: Piece, Kg, Box, Meter)',
+            inputPlaceholder: 'ইউনিটের নাম লিখুন...',
+            showCancelButton: true,
+            confirmButtonText: 'যোগ করুন',
+            cancelButtonText: 'বাতিল',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'ইউনিটের নাম আবশ্যক!';
+                }
+            }
+        });
+
+        if (unitName && unitName.trim()) {
+            try {
+                const res = await axios.post('/seller/unit', {
+                    name: unitName.trim(),
+                    short_name: unitName.trim(),
+                    is_active: true
+                }, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (res.data && res.data.unit) {
+                    const newUnit = res.data.unit;
+                    setLocalUnits(prev => {
+                        if (!prev.some(u => u.id === newUnit.id)) {
+                            return [...prev, newUnit];
+                        }
+                        return prev;
+                    });
+                    setData('unit_id', String(newUnit.id));
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ইউনিট যোগ করা হয়েছে!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            } catch (err: any) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ভুল হয়েছে',
+                    text: err.response?.data?.message || 'ইউনিট যোগ করা সম্ভব হয়নি।'
+                });
+            }
+        }
+    };
 
     const [colorsList] = useState<{ name: string; hex: string }[]>([
         { name: 'Black', hex: '#000000' },
@@ -213,24 +276,24 @@ export default function SellerProductEdit({
 
             <div className="max-w-7xl mx-auto pb-16 space-y-8">
                 {/* Top Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex items-center gap-4">
                         <Link
                             href="/seller/products"
-                            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-800">Edit Product: <span className="text-indigo-600 font-extrabold">{product.name}</span></h1>
-                            <p className="text-xs text-slate-500 mt-0.5">Modify all details, pricing, inventory, variants and images.</p>
+                            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Edit Product: <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{product.name}</span></h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Modify all details, pricing, inventory, variants and images.</p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <Link
                             href="/seller/products"
-                            className="px-5 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 text-xs transition"
+                            className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs transition"
                         >
                             Cancel
                         </Link>
@@ -249,29 +312,29 @@ export default function SellerProductEdit({
                     {/* Left & Middle Column (2 Cols) */}
                     <div className="lg:col-span-2 space-y-8">
                         {/* Basic Product Info Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Basic Information</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Basic Information</h2>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">Product Name / Title <span className="text-rose-500">*</span></label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Product Name / Title <span className="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     required
                                     value={data.name}
                                     onChange={e => setData('name', e.target.value)}
                                     placeholder="e.g. Spark High Voltage Cable 1.5RM"
-                                    className="w-full text-sm font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3"
+                                    className="w-full text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-3"
                                 />
                                 {errors.name && <p className="text-rose-500 text-xs mt-1">{errors.name}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
                                     <select
                                         value={data.category_id}
                                         onChange={e => setData('category_id', e.target.value)}
-                                        className="w-full text-xs font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     >
                                         <option value="">Select Category</option>
                                         {categories.map(c => (
@@ -281,11 +344,11 @@ export default function SellerProductEdit({
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Brand</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Brand</label>
                                     <select
                                         value={data.brand_id}
                                         onChange={e => setData('brand_id', e.target.value)}
-                                        className="w-full text-xs font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     >
                                         <option value="">Select Brand</option>
                                         {brands.map(b => (
@@ -295,25 +358,25 @@ export default function SellerProductEdit({
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">SKU Code</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">SKU Code</label>
                                     <input
                                         type="text"
                                         value={data.sku}
                                         onChange={e => setData('sku', e.target.value)}
                                         placeholder="SPK-CBL-15RM"
-                                        className="w-full text-xs font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Pricing & Stock Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Pricing & Inventory</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Pricing & Inventory</h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Regular Price (৳) <span className="text-rose-500">*</span></label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Regular Price (৳) <span className="text-rose-500">*</span></label>
                                     <input
                                         type="number"
                                         required
@@ -322,12 +385,12 @@ export default function SellerProductEdit({
                                         value={data.price}
                                         onChange={e => setData('price', e.target.value)}
                                         placeholder="2500"
-                                        className="w-full text-sm font-bold text-indigo-600 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-sm font-bold text-indigo-600 dark:text-indigo-400 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Sale Price (৳)</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Sale Price (৳)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -335,12 +398,12 @@ export default function SellerProductEdit({
                                         value={data.sale_price}
                                         onChange={e => setData('sale_price', e.target.value)}
                                         placeholder="2220"
-                                        className="w-full text-sm font-bold text-emerald-600 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-sm font-bold text-emerald-600 dark:text-emerald-400 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Purchase Cost Price (৳)</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Purchase Cost Price (৳)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -348,14 +411,14 @@ export default function SellerProductEdit({
                                         value={data.purchase_price}
                                         onChange={e => setData('purchase_price', e.target.value)}
                                         placeholder="1800"
-                                        className="w-full text-sm font-semibold text-slate-600 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-sm font-semibold text-slate-800 dark:text-slate-200 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Stock Quantity <span className="text-rose-500">*</span></label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Stock Quantity <span className="text-rose-500">*</span></label>
                                     <input
                                         type="number"
                                         required
@@ -363,26 +426,36 @@ export default function SellerProductEdit({
                                         value={data.stock_quantity}
                                         onChange={e => setData('stock_quantity', e.target.value)}
                                         placeholder="100"
-                                        className="w-full text-sm font-bold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-sm font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Unit</label>
-                                    <select
-                                        value={data.unit_id}
-                                        onChange={e => setData('unit_id', e.target.value)}
-                                        className="w-full text-xs font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
-                                    >
-                                        <option value="">Select Unit</option>
-                                        {units.map(u => (
-                                            <option key={u.id} value={u.id}>{u.name}</option>
-                                        ))}
-                                    </select>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Unit</label>
+                                    <div className="flex gap-1.5">
+                                        <select
+                                            value={data.unit_id}
+                                            onChange={e => setData('unit_id', e.target.value)}
+                                            className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        >
+                                            <option value="">Select Unit</option>
+                                            {localUnits.map(u => (
+                                                <option key={u.id} value={u.id}>{u.name}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={handleAddUnit}
+                                            title="Add Unit"
+                                            className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 px-3 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition cursor-pointer flex items-center justify-center shrink-0"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Weight (KG)</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Weight (KG)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -390,16 +463,16 @@ export default function SellerProductEdit({
                                         value={data.weight}
                                         onChange={e => setData('weight', e.target.value)}
                                         placeholder="1.5"
-                                        className="w-full text-xs font-semibold rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
+                                        className="w-full text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 px-3 py-2.5"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Product Description & AI Generator Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                                <h2 className="text-base font-bold text-slate-800">Description & Details</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                                <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">Description & Details</h2>
                                 <button
                                     type="button"
                                     onClick={handleAiGenerate}
@@ -412,35 +485,35 @@ export default function SellerProductEdit({
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">Product Full Description</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Product Full Description</label>
                                 <textarea
                                     rows={5}
                                     value={data.description}
                                     onChange={e => setData('description', e.target.value)}
                                     placeholder="Write full product description, key features, usage instructions..."
-                                    className="w-full text-xs font-medium rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 p-3"
+                                    className="w-full text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 p-3"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">Technical Specifications</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Technical Specifications</label>
                                 <textarea
                                     rows={4}
                                     value={data.specification}
                                     onChange={e => setData('specification', e.target.value)}
                                     placeholder="Voltage, Ampere, Material Grade, Dimensions..."
-                                    className="w-full text-xs font-medium rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 p-3"
+                                    className="w-full text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500 p-3"
                                 />
                             </div>
                         </div>
 
                         {/* Variants & Attributes (Colors, Sizes, Tags) */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Variants & Attributes</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Variants & Attributes</h2>
 
                             {/* Color Selection */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-2">Available Colors</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Available Colors</label>
                                 <div className="flex flex-wrap gap-2">
                                     {colorsList.map(c => {
                                         const isSelected = data.colors.includes(c.name);
@@ -450,10 +523,10 @@ export default function SellerProductEdit({
                                                 type="button"
                                                 onClick={() => toggleColor(c.name)}
                                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-                                                    isSelected ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-2 ring-indigo-500/20' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    isSelected ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                 }`}
                                             >
-                                                <span className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs" style={{ backgroundColor: c.hex }} />
+                                                <span className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-600 shadow-2xs" style={{ backgroundColor: c.hex }} />
                                                 {c.name}
                                             </button>
                                         );
@@ -463,7 +536,7 @@ export default function SellerProductEdit({
 
                             {/* Size Selection */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-2">Available Sizes</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Available Sizes</label>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {['1.5RM', '2.5RM', '4.0RM', '6.0RM', 'S', 'M', 'L', 'XL', 'XXL'].map(s => {
                                         const isSelected = data.sizes.includes(s);
@@ -473,7 +546,7 @@ export default function SellerProductEdit({
                                                 type="button"
                                                 onClick={() => toggleSize(s)}
                                                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition border ${
-                                                    isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                    isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                 }`}
                                             >
                                                 {s}
@@ -487,12 +560,12 @@ export default function SellerProductEdit({
                                         value={customSizeInput}
                                         onChange={e => setCustomSizeInput(e.target.value)}
                                         placeholder="Add custom size (e.g. 10RM)"
-                                        className="text-xs rounded-xl border-slate-300 px-3 py-1.5 focus:ring-indigo-500"
+                                        className="text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 px-3 py-1.5 focus:ring-indigo-500"
                                     />
                                     <button
                                         type="button"
                                         onClick={addCustomSize}
-                                        className="px-3 py-1.5 rounded-xl bg-slate-800 text-white font-bold text-xs hover:bg-slate-900"
+                                        className="px-3 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 text-white font-bold text-xs hover:bg-slate-900 dark:hover:bg-slate-600"
                                     >
                                         Add
                                     </button>
@@ -501,12 +574,12 @@ export default function SellerProductEdit({
 
                             {/* Tags */}
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-2">Search Tags</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Search Tags</label>
                                 <div className="flex flex-wrap gap-2 mb-2">
                                     {data.tags.map(t => (
-                                        <span key={t} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-200">
+                                        <span key={t} className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-lg text-xs font-bold border border-indigo-200 dark:border-indigo-800">
                                             {t}
-                                            <button type="button" onClick={() => removeTag(t)} className="text-indigo-400 hover:text-indigo-900"><X size={12} /></button>
+                                            <button type="button" onClick={() => removeTag(t)} className="text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200"><X size={12} /></button>
                                         </span>
                                     ))}
                                 </div>
@@ -517,7 +590,7 @@ export default function SellerProductEdit({
                                         onChange={e => setTagInput(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
                                         placeholder="Type tag and press Enter"
-                                        className="text-xs rounded-xl border-slate-300 px-3 py-1.5 focus:ring-indigo-500"
+                                        className="text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 px-3 py-1.5 focus:ring-indigo-500"
                                     />
                                     <button type="button" onClick={addTag} className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs">Add Tag</button>
                                 </div>
@@ -528,35 +601,35 @@ export default function SellerProductEdit({
                     {/* Right Column (1 Col) */}
                     <div className="space-y-8">
                         {/* Status & Options Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Listing Status</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Listing Status</h2>
 
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                                 <div>
-                                    <p className="text-xs font-bold text-slate-800">Publish Status</p>
-                                    <p className="text-[10px] text-slate-500">Active products are visible in customer store.</p>
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Publish Status</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Active products are visible in customer store.</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setData('is_active', !data.is_active)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-black transition ${
-                                        data.is_active ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-700'
+                                        data.is_active ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                                     }`}
                                 >
                                     {data.is_active ? 'Active' : 'Draft'}
                                 </button>
                             </div>
 
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
                                 <div>
-                                    <p className="text-xs font-bold text-slate-800">Featured Product</p>
-                                    <p className="text-[10px] text-slate-500">Show on store homepage featured row.</p>
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Featured Product</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Show on store homepage featured row.</p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setData('is_featured', !data.is_featured)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-black transition ${
-                                        data.is_featured ? 'bg-purple-600 text-white' : 'bg-slate-300 text-slate-700'
+                                        data.is_featured ? 'bg-purple-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                                     }`}
                                 >
                                     {data.is_featured ? 'Featured' : 'Standard'}
@@ -565,7 +638,7 @@ export default function SellerProductEdit({
                         </div>
 
                         {/* Warranty Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                             <WarrantySelector
                                 value={data.warranty}
                                 onChange={val => setData('warranty', val)}
@@ -573,16 +646,16 @@ export default function SellerProductEdit({
                         </div>
 
                         {/* Product Main Image */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Main Cover Image</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Main Cover Image</h2>
 
-                            <div className="aspect-[4/3] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 relative overflow-hidden flex flex-col items-center justify-center cursor-pointer group hover:border-indigo-500 transition" onClick={() => mainImageRef.current?.click()}>
+                            <div className="aspect-[4/3] rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 relative overflow-hidden flex flex-col items-center justify-center cursor-pointer group hover:border-indigo-500 transition" onClick={() => mainImageRef.current?.click()}>
                                 {mainPreview ? (
                                     <img src={mainPreview} alt="Main Preview" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="text-center p-4">
                                         <ImageIcon className="w-8 h-8 text-slate-400 mx-auto mb-2 group-hover:text-indigo-600 transition" />
-                                        <p className="text-xs font-bold text-slate-700">Click to upload primary image</p>
+                                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Click to upload primary image</p>
                                         <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, WEBP up to 2MB</p>
                                     </div>
                                 )}
@@ -591,19 +664,19 @@ export default function SellerProductEdit({
                         </div>
 
                         {/* Gallery Images */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Gallery Images</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Gallery Images</h2>
 
                             <div className="grid grid-cols-3 gap-2">
                                 {galleryPreviews.map((imgUrl, i) => (
-                                    <div key={i} className="aspect-square rounded-xl bg-slate-100 overflow-hidden border border-slate-200 relative">
+                                    <div key={i} className="aspect-square rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 relative">
                                         <img src={imgUrl} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                                 <button
                                     type="button"
                                     onClick={() => galleryImageRef.current?.click()}
-                                    className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-500 hover:text-indigo-600"
+                                    className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-500 hover:text-indigo-600"
                                 >
                                     <Plus className="w-5 h-5 mb-1" />
                                     <span className="text-[10px] font-bold">Add</span>
@@ -613,28 +686,28 @@ export default function SellerProductEdit({
                         </div>
 
                         {/* SEO Options Card */}
-                        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
-                            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">Search Engine Optimization (SEO)</h2>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Search Engine Optimization (SEO)</h2>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Meta Title</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Meta Title</label>
                                 <input
                                     type="text"
                                     value={data.meta_title}
                                     onChange={e => setData('meta_title', e.target.value)}
                                     placeholder="Product Google Search Title"
-                                    className="w-full text-xs font-medium rounded-xl border-slate-300 px-3 py-2"
+                                    className="w-full text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 px-3 py-2"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Meta Description</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Meta Description</label>
                                 <textarea
                                     rows={3}
                                     value={data.meta_description}
                                     onChange={e => setData('meta_description', e.target.value)}
                                     placeholder="Brief summary for search engine results..."
-                                    className="w-full text-xs font-medium rounded-xl border-slate-300 p-2.5"
+                                    className="w-full text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 p-2.5"
                                 />
                             </div>
                         </div>

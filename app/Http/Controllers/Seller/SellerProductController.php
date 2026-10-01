@@ -268,6 +268,15 @@ class SellerProductController extends Controller
         $categories = Category::orderBy('display_order')->get(['id', 'name']);
         $brands = \App\Models\Brand::orderBy('name')->get(['id', 'name']);
         $units = \App\Models\Unit::orderBy('name')->get(['id', 'name']);
+        if (!empty($product->unit) && empty($product->unit_id)) {
+            $matchedUnit = $units->first(function ($u) use ($product) {
+                return strtolower(trim($u->name)) === strtolower(trim($product->unit));
+            });
+            if ($matchedUnit) {
+                $product->unit_id = $matchedUnit->id;
+            }
+        }
+
         $attributes = \App\Models\ProductAttribute::where(function($q) use ($shop) {
             $q->whereNull('shop_id')->orWhere('shop_id', $shop->id);
         })->whereNull('product_id')->get();
