@@ -398,11 +398,14 @@ Route::middleware(['auth', 'verified'])->prefix('seller')->name('seller.')->grou
         }
         return Inertia::render('Seller/Dashboard', [
             'shop'          => $shop ? [
-                'id'       => $shop->id,
-                'name'     => $shop->name,
-                'logo_url' => $shop->logo_url ?? null,
-                'status'   => $shop->status ?? 'pending',
-                'rating'   => $shop->rating ?? 0,
+                'id'              => $shop->id,
+                'name'            => $shop->name,
+                'logo_url'        => $shop->logo_url ?? null,
+                'status'          => $shop->status ?? 'pending',
+                'is_approved'     => (bool)$shop->is_approved,
+                'is_kyc_approved' => (bool)$shop->is_kyc_approved,
+                'kyc_status'      => $shop->kyc_status ?? 'Pending',
+                'rating'          => $shop->rating ?? 0,
             ] : null,
             'stats'         => [
                 'total_orders'    => 0,
@@ -461,8 +464,7 @@ Route::middleware(['auth', 'verified'])->prefix('seller')->name('seller.')->grou
                 [
                     'name'        => ($user->name ?? 'Vendor') . "'s Shop",
                     'slug'        => \Illuminate\Support\Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
-                    'status'      => 'active',
-                    'is_approved' => true,
+                    'status'      => 'pending',
                 ]
             );
         }

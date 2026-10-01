@@ -837,11 +837,27 @@ class AdminDashboardController extends Controller
 
     public function approveShop(Shop $shop)
     {
-        $wasApproved = (bool)$shop->is_approved && $shop->status === 'active';
+        $wasApproved = $shop->status === 'active';
 
-        $shop->update(['status' => 'active', 'is_approved' => true]);
+        $shop->update(['status' => 'active']);
+        if ($shop->kyc) {
+            $shop->kyc->update([
+                'status'           => 'Approved',
+                'reviewed_at'      => now(),
+                'reviewed_by'      => auth()->id(),
+                'rejection_reason' => null,
+            ]);
+        }
         UserRole::firstOrCreate(['user_id' => $shop->user_id, 'role' => 'vendor']);
         UserRole::firstOrCreate(['user_id' => $shop->user_id, 'role' => 'seller']);
+
+        // Publish any draft products of this shop upon approval
+        Product::where('shop_id', $shop->id)->update(['is_active' => true, 'status' => 'published']);
+
+        \Illuminate\Support\Facades\Cache::forget('home_featured_products');
+        \Illuminate\Support\Facades\Cache::forget('home_latest_products');
+        \Illuminate\Support\Facades\Cache::forget('home_flash_sale_products');
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
 
         if (!$wasApproved) {
             try {
@@ -849,7 +865,7 @@ class AdminDashboardController extends Controller
                     'user_id' => $shop->user_id,
                     'type'    => 'vendor_approved',
                     'title'   => '🎉 অভিনন্দন! আপনার ভেন্ডর শপ অনুমোদিত হয়েছে',
-                    'body'    => "আপনার শপ '{$shop->name}' সুপার অ্যাডমিন কর্তৃক সফলভাবে অনুমোদিত হয়েছে। এখন আপনি সম্পূর্ণ সেলার প্যানেল ব্যবহার করে প্রোডাক্ট আপলোড ও বিক্রি শুরু করতে পারেন।",
+                    'body'    => "আপনার শপ '{$shop->name}' সুপার অ্যাডমিন কর্তৃক সফলভাবে অনুমোদিত হয়েছে। এখন আপনার শপ এবং প্রোডাক্টগুলো গ্রাহকদের কাছে উন্মুক্ত ও লাইভ হয়েছে।",
                     'link'    => '/seller',
                     'icon'    => 'CheckCircle2',
                     'is_read' => false,
@@ -868,7 +884,7 @@ class AdminDashboardController extends Controller
             }
         }
 
-        return back()->with('success', 'Shop approved successfully.');
+        return back()->with('success', 'Shop approved successfully and products published.');
     }
 
     public function suspendShop(Shop $shop)

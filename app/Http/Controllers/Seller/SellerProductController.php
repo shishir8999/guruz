@@ -87,14 +87,29 @@ class SellerProductController extends Controller
         ]);
     }
 
+    private function isSellerApproved(?Shop $shop, $user): bool
+    {
+        if (in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($user->hasRole && $user->hasRole('admin'))) {
+            return true;
+        }
+
+        if (!$shop) {
+            return false;
+        }
+
+        $shop->loadMissing('kyc');
+
+        $isShopActive = in_array(strtolower($shop->status ?? ''), ['active', 'approved']);
+        $isKycApproved = $shop->kyc && strtolower($shop->kyc->status ?? '') === 'approved';
+
+        return $isShopActive && $isKycApproved;
+    }
+
     // ─── Create Product Form ──────────────────────────
 
     public function create()
     {
         $shop = $this->getShop();
-        if ($shop->status === 'pending') {
-            $shop->update(['status' => 'active']);
-        }
 
         $categories = Category::orderBy('display_order')->get(['id', 'name']);
         $brands = \App\Models\Brand::orderBy('name')->get(['id', 'name']);
@@ -117,12 +132,9 @@ class SellerProductController extends Controller
     public function store(Request $request)
     {
         $shop = $this->getShop();
-        $shop->loadMissing('kyc');
         $user = auth()->user();
 
-        $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
-            || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
-            || ($user->hasRole && $user->hasRole('admin'));
+        $isApproved = $this->isSellerApproved($shop, $user);
 
         $data = $request->validate([
             'name'               => 'required|string|max:255',
@@ -200,8 +212,8 @@ class SellerProductController extends Controller
             'materials'        => $data['materials'] ?? [],
             'tags'             => $data['tags'] ?? [],
             'attributes'       => json_encode($formattedAttributes),
-            'is_active'        => $isKycApproved ? ($data['is_active'] ?? true) : false,
-            'status'           => ($isKycApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
+            'is_active'        => $isApproved ? ($data['is_active'] ?? true) : false,
+            'status'           => ($isApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
             'is_featured'      => $data['is_featured'] ?? false,
         ]);
 
@@ -224,31 +236,33 @@ class SellerProductController extends Controller
             }
         }
 
-        // Notify all followers of this shop with a single bulk insert
-        try {
-            $followers = \App\Models\ShopFollower::where('shop_id', $shop->id)->pluck('user_id');
-            $notifications = [];
-            $now = now();
-            foreach ($followers as $followerId) {
-                $notifications[] = [
-                    'user_id'    => $followerId,
-                    'type'       => 'new_product',
-                    'title'      => "নতুন পণ্য যুক্ত হয়েছে: {$product->name}",
-                    'body'       => "আপনার প্রিয় শপ \"{$shop->name}\" একটি নতুন পণ্য যুক্ত করেছে!",
-                    'link'       => "/products/{$product->slug}",
-                    'icon'       => '🛍️',
-                    'is_read'    => false,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-            if (!empty($notifications)) {
-                \App\Models\Notification::insert($notifications);
-            }
-        } catch (\Throwable $e) {}
+        // Notify followers only if the product is approved and published
+        if ($isApproved && $product->is_active) {
+            try {
+                $followers = \App\Models\ShopFollower::where('shop_id', $shop->id)->pluck('user_id');
+                $notifications = [];
+                $now = now();
+                foreach ($followers as $followerId) {
+                    $notifications[] = [
+                        'user_id'    => $followerId,
+                        'type'       => 'new_product',
+                        'title'      => "নতুন পণ্য যুক্ত হয়েছে: {$product->name}",
+                        'body'       => "আপনার প্রিয় শপ \"{$shop->name}\" একটি নতুন পণ্য যুক্ত করেছে!",
+                        'link'       => "/products/{$product->slug}",
+                        'icon'       => '🛍️',
+                        'is_read'    => false,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($notifications)) {
+                    \App\Models\Notification::insert($notifications);
+                }
+            } catch (\Throwable $e) {}
+        }
 
-        if (!$isKycApproved) {
-            return redirect()->route('seller.products.index')->with('warning', 'পণ্যটি ড্রাফট হিসেবে সেভ হয়েছে। আপনার শপের কেওয়াইসি (KYC) সুপার অ্যাডমিন দ্বারা ভেরিফাই ও অ্যাপ্রুভ না হওয়া পর্যন্ত পণ্যটি পাবলিক হবে না।');
+        if (!$isApproved) {
+            return redirect()->route('seller.products.index')->with('warning', 'পণ্যটি ড্রাফট হিসেবে সংরক্ষিত হয়েছে। আপনার ভেন্ডর প্রোফাইল এবং কেওয়াইসি এখনো সুপার অ্যাডমিনের অনুমোদনের অপেক্ষায় রয়েছে। সুপার অ্যাডমিন অনুমোদন করার পর এটি স্বয়ংক্রিয়ভাবে পাবলিক হবে।');
         }
 
         return redirect()->route('seller.products.index')->with('success', 'পণ্য সফলভাবে প্রকাশ করা হয়েছে!');
@@ -300,15 +314,12 @@ class SellerProductController extends Controller
             abort_if($product->shop_id !== $shop->id, 403);
         }
 
-        $shop->loadMissing('kyc');
-        $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
-            || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
-            || ($user->hasRole && $user->hasRole('admin'));
+        $isApproved = $this->isSellerApproved($shop, $user);
 
         // Quick toggle status handling
         if ($request->has('is_active') && !$request->has('name')) {
-            if (!$isKycApproved && $request->is_active) {
-                return back()->with('error', 'আপনার কেওয়াইসি (KYC) এখনও অ্যাপ্রুভ হয়নি। কেওয়াইসি ভেরিফিকেশন সম্পন্ন ও অ্যাপ্রুভ হওয়ার পূর্বে পণ্য অ্যাক্টিভ/পাবলিক করা যাবে না।');
+            if (!$isApproved && $request->is_active) {
+                return back()->with('error', 'আপনার ভেন্ডর প্রোফাইল এবং কেওয়াইসি (KYC) এখনো সুপার অ্যাডমিন অনুমোদন করেননি। অনুমোদন না পাওয়া পর্যন্ত কোনো প্রোডাক্ট পাবলিক করা যাবে না।');
             }
 
             $product->update([
@@ -379,8 +390,8 @@ class SellerProductController extends Controller
             'sizes'            => $data['sizes'] ?? $product->sizes ?? [],
             'materials'        => $data['materials'] ?? $product->materials ?? [],
             'tags'             => $data['tags'] ?? $product->tags ?? [],
-            'is_active'        => $isKycApproved ? ($data['is_active'] ?? true) : false,
-            'status'           => ($isKycApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
+            'is_active'        => $isApproved ? ($data['is_active'] ?? true) : false,
+            'status'           => ($isApproved && ($data['is_active'] ?? true)) ? 'published' : 'draft',
             'is_featured'      => $data['is_featured'] ?? false,
         ]);
 
@@ -401,8 +412,8 @@ class SellerProductController extends Controller
             }
         }
 
-        if (!$isKycApproved && ($data['is_active'] ?? true)) {
-            return redirect()->route('seller.products.index')->with('warning', 'পণ্য আপডেট হয়েছে, তবে কেওয়াইসি পেন্ডিং থাকায় পণ্যটি ড্রাফট মোডে রাখা হয়েছে। কেওয়াইসি অ্যাপ্রুভ হলে এটি স্বয়ংক্রিয়ভাবে পাবলিক হবে।');
+        if (!$isApproved && ($data['is_active'] ?? true)) {
+            return redirect()->route('seller.products.index')->with('warning', 'পণ্য আপডেট হয়েছে, তবে আপনার ভেন্ডর প্রোফাইল এখনো সুপার অ্যাডমিনের অনুমোদনের অপেক্ষায় থাকায় এটি ড্রাফট হিসেবে সংরক্ষিত রয়েছে এবং অনুমোদনের পর পাবলিক হবে।');
         }
 
         return redirect()->route('seller.products.index')->with('success', 'পণ্য সফলভাবে আপডেট করা হয়েছে!');

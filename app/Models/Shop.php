@@ -80,6 +80,11 @@ class Shop extends Model
 
     public function getIsApprovedAttribute(): bool
     {
-        return in_array(strtolower($this->status ?? ''), ['active', 'approved']);
+        if ($this->owner && (in_array($this->owner->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($this->owner->hasRole && $this->owner->hasRole('admin')))) {
+            return true;
+        }
+
+        return in_array(strtolower($this->status ?? ''), ['active', 'approved'])
+            && ($this->kyc && strtolower($this->kyc->status ?? '') === 'approved');
     }
 }

@@ -51,6 +51,10 @@ class Product extends Model
     public function scopePublished($query)
     {
         return $query->where('products.is_active', true)
+            ->where(function ($sqStatus) {
+                $sqStatus->where('products.status', 'published')
+                         ->orWhereNull('products.status');
+            })
             ->where(function ($q) {
                 // 1. Direct admin products (no shop attached)
                 $q->whereNull('products.shop_id')
@@ -71,7 +75,7 @@ class Product extends Model
                           })
                           // 3. Vendor shop: shop must be active AND KYC must be approved by Super Admin
                           ->orWhere(function ($vendorSq) {
-                              $vendorSq->whereIn('status', ['active', 'approved'])
+                              $vendorSq->where('status', 'active')
                                        ->whereHas('kyc', function ($kycQuery) {
                                            $kycQuery->whereRaw('LOWER(status) = ?', ['approved']);
                                        });

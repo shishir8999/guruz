@@ -17,6 +17,9 @@ class ShopController extends Controller
     public function index()
     {
         $shops = Shop::where('status', 'active')
+            ->whereHas('kyc', function ($q) {
+                $q->whereRaw('LOWER(status) = ?', ['approved']);
+            })
             ->withCount(['products', 'followers'])
             ->orderBy('rating', 'desc')
             ->paginate(12);
@@ -30,10 +33,15 @@ class ShopController extends Controller
     {
         $shop = Shop::where('slug', $slug)
             ->orWhere('id', $slug)
-            ->first();
+            ->firstOrFail();
 
-        if (!$shop) {
-            $shop = Shop::where('status', 'active')->firstOrFail();
+        // If the shop is not approved yet, only the owner or an admin can preview it!
+        if (!$shop->is_approved) {
+            $user = auth()->user();
+            $canPreview = $user && ($user->id === $shop->user_id || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']));
+            if (!$canPreview) {
+                abort(404, 'এই শপটি এখনো সুপার অ্যাডমিন কর্তৃক অনুমোদিত হয়নি।');
+            }
         }
 
         $shop->loadCount('followers');

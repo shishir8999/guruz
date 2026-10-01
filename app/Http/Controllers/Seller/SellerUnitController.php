@@ -21,8 +21,7 @@ class SellerUnitController extends Controller
                 [
                     'name'        => ($user->name ?? 'Vendor') . "'s Shop",
                     'slug'        => \Illuminate\Support\Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
-                    'status'      => 'active',
-                    'is_approved' => true,
+                    'status'      => 'pending',
                 ]
             );
         }

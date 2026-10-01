@@ -1130,7 +1130,7 @@ export default function SellerLayout({ children, title = 'Dashboard' }: SellerLa
                 {/* ─── MAIN CONTENT ─── */}
                 <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto custom-scrollbar pb-24 md:pb-8">
                     {/* ⚠️ PENDING APPROVAL WARNING BANNER */}
-                    {(props.auth?.user?.shop?.status === 'pending' || props.auth?.user?.shop?.is_approved === false || props.auth?.user?.shop?.is_approved === 0) && (
+                    {Boolean(props.auth?.user?.shop && (props.auth?.user?.shop?.status === 'pending' || !props.auth?.user?.shop?.is_approved || props.auth?.user?.shop?.is_approved === 0 || props.auth?.user?.shop?.is_kyc_approved === false)) && (
                         <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                             <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 font-bold">
@@ -1141,13 +1141,21 @@ export default function SellerLayout({ children, title = 'Dashboard' }: SellerLa
                                         আপনার সেলার অ্যাকাউন্টটি অনুমোদন অপেক্ষায় আছে (Pending Super Admin Approval)
                                     </h4>
                                     <p className="text-xs text-slate-600 dark:text-amber-200/80 mt-0.5 leading-relaxed">
-                                        সুপার অ্যাডমিন আপনার দোকান ও তথ্যাদি যাচাই করে অনুমোদন (Approve) করলে আপনার শপ ও প্রোডাক্ট ক্রেতাদের কাছে লাইভ হবে এবং প্রোডাক্ট বিক্রি শুরু করা যাবে।
+                                        সুপার অ্যাডমিন আপনার দোকান ও কেওয়াইসি (KYC) তথ্যাদি যাচাই করে অনুমোদন (Approve) করলে আপনার শপ ও প্রোডাক্ট ক্রেতাদের কাছে লাইভ হবে।
                                     </p>
                                 </div>
                             </div>
-                            <span className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs border border-amber-500/30">
-                                ⏳ পেন্ডিং (Pending)
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <Link
+                                    href="/seller/my-shop"
+                                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    কেওয়াইসি স্ট্যাটাস দেখুন
+                                </Link>
+                                <span className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold text-xs border border-amber-500/30">
+                                    ⏳ পেন্ডিং (Pending)
+                                </span>
+                            </div>
                         </div>
                     )}
 

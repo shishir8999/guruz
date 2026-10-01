@@ -115,16 +115,6 @@ export default function SellerDashboard({ stats, shop, recent_orders }: SellerDa
             <Head title="Seller Dashboard" />
 
             <div className="space-y-6">
-                
-                {/* Pending Status Banner */}
-                {shop?.status === 'pending' && (
-                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-yellow-500" />
-                            <span className="text-sm font-medium">আপনার শপটি pending! অ্যাডমিন অনুমোদনের পর প্রোডাক্ট লাইভ হবে।</span>
-                        </div>
-                    </div>
-                )}
 
                 {/* Welcome Banner */}
                 <div className="bg-emerald-500 rounded-lg p-6 text-white flex flex-col md:flex-row items-center justify-between shadow-md relative overflow-hidden">
