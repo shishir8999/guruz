@@ -114,8 +114,8 @@
                 var cookieDomains = [hostname, rootDomain, ''];
                 var cookiePaths = ['/', ''];
                 
+                // Clear old googtrans cookies across paths & domains
                 for (var d = 0; d < cookieDomains.length; d++) {
-                    if (!cookieDomains[d] && cookieDomains[d] !== '') continue;
                     for (var p = 0; p < cookiePaths.length; p++) {
                         var domainClause = cookieDomains[d] ? '; domain=' + cookieDomains[d] : '';
                         var pathClause = cookiePaths[p] ? '; path=' + cookiePaths[p] : '';
@@ -123,13 +123,11 @@
                     }
                 }
 
-                if (lang && lang !== 'bn') {
-                    var targetVal = '/bn/' + lang;
-                    var autoVal = '/auto/' + lang;
-                    document.cookie = 'googtrans=' + targetVal + '; path=/;';
-                    if (rootDomain) {
-                        document.cookie = 'googtrans=' + targetVal + '; path=/; domain=' + rootDomain + ';';
-                    }
+                // Set new cookie with /auto/ for universal translation of mixed languages
+                var autoVal = '/auto/' + lang;
+                for (var d = 0; d < cookieDomains.length; d++) {
+                    var domainClause = cookieDomains[d] ? '; domain=' + cookieDomains[d] : '';
+                    document.cookie = 'googtrans=' + autoVal + '; path=/' + domainClause + ';';
                 }
             }
 
@@ -145,7 +143,8 @@
             function googleTranslateElementInit() {
                 try {
                     new google.translate.TranslateElement({
-                        pageLanguage: 'bn',
+                        pageLanguage: 'auto',
+                        multilanguagePage: true,
                         includedLanguages: 'bn,en,hi',
                         layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
                         autoDisplay: false
@@ -156,7 +155,7 @@
             window.addEventListener('DOMContentLoaded', function() {
                 try {
                     var savedLang = localStorage.getItem('site_language') || localStorage.getItem('app_lang');
-                    if (savedLang && savedLang !== 'bn') {
+                    if (savedLang) {
                         var gLang = savedLang === 'in' ? 'hi' : savedLang;
                         var attempts = 0;
                         var checkInterval = setInterval(function() {
@@ -170,7 +169,7 @@
                                 clearInterval(checkInterval);
                             }
                             if (attempts > 30) clearInterval(checkInterval);
-                        }, 250);
+                        }, 200);
                     }
                 } catch(e) {}
             });
@@ -187,16 +186,15 @@
                 var gLang = cleanLang === 'in' ? 'hi' : cleanLang;
                 clearAndSetGoogtrans(gLang);
 
-                // Try to change select combo directly
                 var select = document.querySelector('.goog-te-combo');
                 if (select) {
-                    select.value = gLang === 'bn' ? '' : gLang;
+                    select.value = gLang;
                     select.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
                 setTimeout(function() {
                     window.location.reload();
-                }, 120);
+                }, 150);
             };
 
             window.setWebsiteLanguage = window.changeSiteLanguage;
@@ -268,10 +266,9 @@
                 pointer-events: none !important;
             }
 
-            /* 🚫 Completely eliminate all Google Translate floating popup widgets, spinners, banners, and tooltips */
+            /* Safely hide Google Translate top banner, tooltips, and balloon popups */
             .goog-te-banner-frame,
             iframe.goog-te-banner-frame,
-            .goog-te-banner-frame.skiptranslate,
             #goog-gt-tt,
             #goog-gt-vt,
             [id*="goog-gt-"],
@@ -279,9 +276,6 @@
             .goog-tooltip,
             .goog-tooltip:hover,
             .goog-te-gadget-icon,
-            .goog-te-spinner,
-            .goog-te-spinner-pos,
-            .goog-te-spinner-animation,
             .VIpgJd-ZVi9od-ORHb, 
             .VIpgJd-ZVi9od-ORHb-OEVmcd, 
             .VIpgJd-ZVi9od-aZ2wEe, 
@@ -294,23 +288,9 @@
             .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
             .VIpgJd-yD054b-VGnKid-support-links,
             .VIpgJd-yD054b-y25Nvf,
-            .VIpgJd-ZVi9od-vH1Gmf-ibnC6b,
-            [class*="VIpgJd-ZVi9od"],
-            [class*="VIpgJd-"],
-            .skiptranslate:not(#google_translate_element) {
+            .VIpgJd-ZVi9od-vH1Gmf-ibnC6b {
                 display: none !important;
                 visibility: hidden !important;
-                height: 0 !important;
-                width: 0 !important;
-                max-height: 0 !important;
-                max-width: 0 !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-                overflow: hidden !important;
-                position: absolute !important;
-                left: -99999px !important;
-                top: -99999px !important;
-                z-index: -99999 !important;
             }
 
             body {
@@ -330,48 +310,6 @@
                 border: none !important;
             }
         </style>
-
-        <script>
-            // 🚫 Continuously remove and suppress Google Translate floating banner, spinner & tooltip popups
-            (function() {
-                var selectors = [
-                    'iframe.goog-te-banner-frame',
-                    '.goog-te-banner-frame',
-                    '#goog-gt-tt',
-                    '#goog-gt-vt',
-                    '.goog-te-balloon-frame',
-                    '.goog-te-spinner-pos',
-                    '.goog-te-spinner',
-                    '.goog-te-spinner-animation',
-                    '[class*="VIpgJd-ZVi9od-aZ2wEe"]',
-                    '[class*="VIpgJd-"]',
-                    '.skiptranslate:not(#google_translate_element)'
-                ].join(', ');
-
-                function purgeTranslateUI() {
-                    try {
-                        var nodes = document.querySelectorAll(selectors);
-                        for (var i = 0; i < nodes.length; i++) {
-                            var el = nodes[i];
-                            if (el.id !== 'google_translate_element' && !el.closest('#google_translate_element')) {
-                                el.remove();
-                            }
-                        }
-                        if (document.body && document.body.style.top && document.body.style.top !== '0px') {
-                            document.body.style.setProperty('top', '0px', 'important');
-                        }
-                    } catch(e) {}
-                }
-
-                var uiObserver = new MutationObserver(purgeTranslateUI);
-                if (document.documentElement) {
-                    uiObserver.observe(document.documentElement, { childList: true, subtree: true });
-                }
-                document.addEventListener('DOMContentLoaded', purgeTranslateUI);
-                window.addEventListener('load', purgeTranslateUI);
-                setInterval(purgeTranslateUI, 200);
-            })();
-        </script>
 
         <!-- Integrations (Head) -->
         @if(!empty($integrations['gtm_id']))

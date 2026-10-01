@@ -31,29 +31,33 @@ export function LanguageToggle({ variant = "header", className = "" }: Props) {
     : { bn: "বাংলা", en: "EN", hi: "हिन्दी" };
   const btnPad = variant === "floating" ? "px-3 py-2 text-sm" : isHeader ? "px-1.5 py-1 text-[11px]" : "px-2.5 py-1.5";
 
+  const isBn = lang === "bn";
+  const isEn = lang === "en";
+  const isHi = lang === "hi" || lang === "in";
+
   return (
     <div className={`${base} ${styles} ${className}`} role="group" aria-label="Language">
       <Globe className={iconClass} />
       <button
         type="button"
         onClick={() => setLang("bn")}
-        aria-pressed={lang === "bn"}
+        aria-pressed={isBn}
         aria-label="বাংলা"
-        className={`${btnPad} transition ${pill(lang === "bn")}`}
+        className={`${btnPad} transition ${pill(isBn)}`}
       >{labels.bn}</button>
       <button
         type="button"
         onClick={() => setLang("en")}
-        aria-pressed={lang === "en"}
+        aria-pressed={isEn}
         aria-label="English"
-        className={`${btnPad} transition ${pill(lang === "en")}`}
+        className={`${btnPad} transition ${pill(isEn)}`}
       >{labels.en}</button>
       <button
         type="button"
         onClick={() => setLang("hi")}
-        aria-pressed={lang === "hi"}
+        aria-pressed={isHi}
         aria-label="हिन्दी"
-        className={`${btnPad} transition ${pill(lang === "hi")}`}
+        className={`${btnPad} transition ${pill(isHi)}`}
       >{labels.hi}</button>
     </div>
   );

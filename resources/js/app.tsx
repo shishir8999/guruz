@@ -22,12 +22,6 @@ if (typeof window !== 'undefined' && typeof Node === 'function' && Node.prototyp
 
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp, router } from '@inertiajs/react';
-
-// Prevent disruptive Inertia development error iframe modal (e.g. 404 / 500 overlay)
-router.on('invalid', (event: any) => {
-    event.preventDefault();
-    console.warn('[Inertia] Intercepted non-Inertia/error response:', event?.detail?.response?.status);
-});
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import AdminLayout from './Layouts/AdminLayout';
 import SellerLayout from './Layouts/SellerLayout';
@@ -37,6 +31,32 @@ import { FlyToCartOverlay } from './Components/FlyToCart';
 import { FlyToWishlistOverlay } from './Components/FlyToWishlist';
 import { detectVisitorCountryAndApply } from './lib/geoDetection';
 import { initInstantNavigation } from './lib/instantPrefetch';
+
+// Prevent disruptive Inertia development error iframe modal (e.g. 404 / 500 overlay)
+router.on('invalid', (event: any) => {
+    event.preventDefault();
+    console.warn('[Inertia] Intercepted non-Inertia/error response:', event?.detail?.response?.status);
+});
+
+// Keep Google Translate active across Inertia client-side page navigations
+router.on('finish', () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const saved = localStorage.getItem('site_language') || localStorage.getItem('app_lang');
+        if (saved) {
+            const target = (saved === 'in' ? 'hi' : saved);
+            setTimeout(() => {
+                const select = document.querySelector('.goog-te-combo') as HTMLSelectElement | null;
+                if (select) {
+                    if (select.value !== target) {
+                        select.value = target;
+                    }
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }, 100);
+        }
+    } catch {}
+});
 
 // Auto-detect visitor country for language and currency & handle interactive clicked text states
 if (typeof window !== 'undefined') {
