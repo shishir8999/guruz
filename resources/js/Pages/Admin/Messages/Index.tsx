@@ -6,6 +6,7 @@ import {
     Play, Pause, Volume2
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 // 🎙️ 1-Click Voice Note Player for Admin Inbox
 function AdminVoicePlayer({ url, isMe }: { url: string; isMe: boolean }) {
@@ -191,11 +192,14 @@ export default function Index({
     conversation = []
 }: AdminMessagesProps) {
     const { props } = usePage<any>();
-    const siteSettings = props.siteSettings;
-
+    const [customerList, setCustomerList] = useState<CustomerItem[]>(customers || []);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'unread' | 'live'>('all');
     const chatBodyRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setCustomerList(customers || []);
+    }, [customers]);
 
     const { data, setData, post, processing, reset } = useForm({
         thread_id: active_user?.thread_id || '',
@@ -271,22 +275,30 @@ export default function Index({
             cancelButtonColor: '#64748b',
             confirmButtonText: 'হ্যাঁ, ডিলিট করুন',
             cancelButtonText: 'বাতিল',
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                router.delete('/admin/messages/thread/' + threadId, {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'চ্যাট ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হয়েছে।',
-                            showConfirmButton: false,
-                            timer: 2000,
-                            timerProgressBar: true,
-                        });
-                    }
-                });
+                const isLive = String(threadId).startsWith('live_');
+                const rawId = String(threadId).replace('live_', '').replace('user_', '');
+                setCustomerList(prev => prev.filter(c => {
+                    if (isLive) return String(c.thread_id) !== rawId;
+                    return String(c.user_id) !== rawId;
+                }));
+
+                try {
+                    await axios.delete('/admin/messages/thread/' + threadId);
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'চ্যাট ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হয়েছে।',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true,
+                    });
+                    router.visit('/admin/messages', { preserveScroll: true, replace: true });
+                } catch (e) {
+                    router.delete('/admin/messages/thread/' + threadId, { preserveScroll: true });
+                }
             }
         });
     };
@@ -301,25 +313,44 @@ export default function Index({
             cancelButtonColor: '#64748b',
             confirmButtonText: 'হ্যাঁ, ইউজার সম্পূর্ণ ডিলিট করুন',
             cancelButtonText: 'বাতিল',
-        }).then((result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
-                router.delete('/admin/messages/user/' + userId, {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: `ইউজার "${userName}" সফলভাবে মুছে ফেলা হয়েছে!`,
-                            showConfirmButton: false,
-                            timer: 2500,
-                            timerProgressBar: true,
-                        });
-                    },
-                    onError: () => {
-                        Swal.fire('ব্যর্থ!', 'ইউজার ডিলিট করা সম্ভব হয়নি।', 'error');
-                    }
-                });
+                // Optimistic removal from sidebar immediately
+                setCustomerList(prev => prev.filter(c => c.user_id !== userId));
+
+                try {
+                    const response = await axios.delete('/admin/messages/user/' + userId);
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: response.data?.message || `ইউজার "${userName}" সফলভাবে মুছে ফেলা হয়েছে!`,
+                        showConfirmButton: false,
+                        timer: 2500,
+                        timerProgressBar: true,
+                    });
+                    router.visit('/admin/messages', { replace: true });
+                } catch (error) {
+                    // Fallback using router.delete
+                    router.delete('/admin/messages/user/' + userId, {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: `ইউজার "${userName}" সফলভাবে মুছে ফেলা হয়েছে!`,
+                                showConfirmButton: false,
+                                timer: 2500,
+                                timerProgressBar: true,
+                            });
+                            router.visit('/admin/messages', { replace: true });
+                        },
+                        onError: () => {
+                            Swal.fire('ব্যর্থ!', 'ইউজার ডিলিট করা সম্ভব হয়নি।', 'error');
+                        }
+                    });
+                }
             }
         });
     };
@@ -371,9 +402,9 @@ export default function Index({
         });
     };
 
-    const unreadClientsCount = customers.filter(c => (c.unread_count || 0) > 0).length;
+    const unreadClientsCount = customerList.filter(c => (c.unread_count || 0) > 0).length;
 
-    const filteredCustomers = customers.filter(c => {
+    const filteredCustomers = customerList.filter(c => {
         const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.phone.toLowerCase().includes(searchTerm.toLowerCase());
@@ -450,7 +481,7 @@ export default function Index({
                                         filterMode === 'all' ? 'bg-white text-slate-900 shadow-xs font-extrabold' : 'text-slate-500 hover:text-slate-900'
                                     }`}
                                 >
-                                    সকল ({customers.length})
+                                    সকল ({customerList.length})
                                 </button>
                                 <button
                                     onClick={() => setFilterMode('live')}

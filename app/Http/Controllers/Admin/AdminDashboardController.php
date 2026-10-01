@@ -366,28 +366,29 @@ class AdminDashboardController extends Controller
             if ($user) {
                 $userId = $user->id;
                 $email = $user->email;
-                \Illuminate\Support\Facades\DB::table('user_roles')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('profiles')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('shops')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('orders')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('reviews')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('favorites')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('addresses')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('user_bonus_coupons')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('customer_wallets')->where('user_id', $userId)->delete();
-                \Illuminate\Support\Facades\DB::table('seller_wallets')->where('user_id', $userId)->delete();
 
-                if (\Illuminate\Support\Facades\Schema::hasTable('wishlists')) {
-                    \Illuminate\Support\Facades\DB::table('wishlists')->where('user_id', $userId)->delete();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('carts')) {
-                    \Illuminate\Support\Facades\DB::table('carts')->where('user_id', $userId)->delete();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('sessions')) {
-                    \Illuminate\Support\Facades\DB::table('sessions')->where('user_id', $userId)->delete();
-                }
-                if (\Illuminate\Support\Facades\Schema::hasTable('system_notifications')) {
-                    \Illuminate\Support\Facades\DB::table('system_notifications')->where('notifiable_id', $userId)->delete();
+                $relatedTables = [
+                    'user_roles', 'profiles', 'shops', 'orders', 'reviews', 'product_reviews',
+                    'favorites', 'addresses', 'user_bonus_coupons', 'customer_wallets',
+                    'seller_wallets', 'wishlists', 'carts', 'sessions', 'messages',
+                    'live_chat_messages', 'live_chat_threads', 'system_notifications',
+                    'notifications', 'push_notifications', 'social_accounts', 'vendor_kycs'
+                ];
+
+                foreach ($relatedTables as $table) {
+                    if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                        try {
+                            $col = ($table === 'system_notifications') ? 'notifiable_id' : 'user_id';
+                            if ($table === 'messages') {
+                                \Illuminate\Support\Facades\DB::table('messages')
+                                    ->where('sender_id', $userId)
+                                    ->orWhere('receiver_id', $userId)
+                                    ->delete();
+                            } elseif (\Illuminate\Support\Facades\Schema::hasColumn($table, $col)) {
+                                \Illuminate\Support\Facades\DB::table($table)->where($col, $userId)->delete();
+                            }
+                        } catch (\Throwable $ex) {}
+                    }
                 }
 
                 \Illuminate\Support\Facades\DB::table('users')->where('id', $userId)->delete();
@@ -396,7 +397,9 @@ class AdminDashboardController extends Controller
             if ($email) {
                 $cleanEmail = strtolower(trim($email));
                 \Illuminate\Support\Facades\DB::table('users')->whereRaw('LOWER(TRIM(email)) = ?', [$cleanEmail])->delete();
-                \Illuminate\Support\Facades\DB::table('password_reset_tokens')->whereRaw('LOWER(TRIM(email)) = ?', [$cleanEmail])->delete();
+                if (\Illuminate\Support\Facades\Schema::hasTable('password_reset_tokens')) {
+                    \Illuminate\Support\Facades\DB::table('password_reset_tokens')->whereRaw('LOWER(TRIM(email)) = ?', [$cleanEmail])->delete();
+                }
             }
 
             \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');

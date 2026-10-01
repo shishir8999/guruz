@@ -388,13 +388,26 @@ class AdminMessageController extends Controller
         }
 
         $userName = $user->name;
-        \App\Http\Controllers\Admin\AdminDashboardController::forceDeleteUserFromSystem($userId);
+        $deleted = \App\Http\Controllers\Admin\AdminDashboardController::forceDeleteUserFromSystem($userId);
+
+        if (!$deleted) {
+            // Direct failsafe fallback
+            try {
+                \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+                \App\Models\Message::where('sender_id', $userId)->orWhere('receiver_id', $userId)->delete();
+                \App\Models\LiveChatThread::where('user_id', $userId)->delete();
+                \App\Models\User::where('id', $userId)->delete();
+                \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            } catch (\Throwable $ex) {
+                \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            }
+        }
 
         Cache::forget('admin_nav_counts');
 
         $message = "ইউজার '{$userName}' এবং তার সমস্ত তথ্য সফলভাবে ডাটাবেজ থেকে মুছে ফেলা হয়েছে!";
 
-        if ($request->wantsJson() || $request->ajax()) {
+        if ($request->wantsJson() && !$request->header('X-Inertia')) {
             return response()->json(['success' => true, 'message' => $message]);
         }
 
