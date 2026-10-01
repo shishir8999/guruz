@@ -267,33 +267,5 @@ class DatabaseSeeder extends Seeder
                 ['name' => 'Laptop', 'slug' => 'laptop', 'created_at' => now(), 'updated_at' => now()],
             ]);
         }
-
-        // 8. Seed Dummy Orders
-        if (\App\Models\Order::count() === 0) {
-            $order = \App\Models\Order::create([
-                'user_id' => $customer->id,
-                'order_number' => 'ORD-10001',
-                'status' => 'pending',
-                'payment_status' => 'unpaid',
-                'subtotal' => 1450.00,
-                'total' => 1450.00,
-                'shipping_fee' => 60.00,
-                'payment_method' => 'cod',
-                'shipping_address' => 'Dhaka, Bangladesh',
-                'customer_name' => $customer->name,
-                'customer_email' => $customer->email,
-                'customer_phone' => $customer->phone,
-                'city' => 'Dhaka',
-            ]);
-
-            \App\Models\OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => 1,
-                'product_name' => 'UGREEN CR113 4-in-1 USB 3.0 Hub',
-                'quantity' => 1,
-                'price' => 1450.00,
-                'subtotal' => 1450.00,
-            ]);
-        }
     }
 }

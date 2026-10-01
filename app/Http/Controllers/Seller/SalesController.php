@@ -60,69 +60,6 @@ class SalesController extends Controller
 
         $allOrders = Order::where('shop_id', $shopId)->get();
 
-        // Seed initial demo sales if table is empty for shop
-        if ($allOrders->isEmpty() && !$request->filled('search')) {
-            $demoSales = [
-                [
-                    'shop_id'          => $shopId,
-                    'order_number'     => 'INV-20260812-101',
-                    'customer_name'    => 'Rahim Uddin',
-                    'customer_phone'   => '01711223344',
-                    'shipping_address' => 'Mirpur-10, Dhaka',
-                    'subtotal'         => 8500.00,
-                    'shipping_fee'     => 120.00,
-                    'discount'         => 200.00,
-                    'total'            => 8420.00,
-                    'payment_method'   => 'bKash',
-                    'payment_status'   => 'Paid',
-                    'status'           => 'delivered',
-                    'created_at'       => now()->subDays(1),
-                ],
-                [
-                    'shop_id'          => $shopId,
-                    'order_number'     => 'INV-20260813-102',
-                    'customer_name'    => 'Kabir Hossain',
-                    'customer_phone'   => '01899887766',
-                    'shipping_address' => 'Agrabad, Chittagong',
-                    'subtotal'         => 14200.00,
-                    'shipping_fee'     => 150.00,
-                    'discount'         => 350.00,
-                    'total'            => 14000.00,
-                    'payment_method'   => 'Cash on Delivery',
-                    'payment_status'   => 'Paid',
-                    'status'           => 'delivered',
-                    'created_at'       => now()->subHours(5),
-                ],
-                [
-                    'shop_id'          => $shopId,
-                    'order_number'     => 'INV-20260813-103',
-                    'customer_name'    => 'Walk-in Customer',
-                    'customer_phone'   => '01900000000',
-                    'shipping_address' => 'Over the Counter (POS)',
-                    'subtotal'         => 3500.00,
-                    'shipping_fee'     => 0.00,
-                    'discount'         => 0.00,
-                    'total'            => 3500.00,
-                    'payment_method'   => 'Cash',
-                    'payment_status'   => 'Paid',
-                    'status'           => 'delivered',
-                    'created_at'       => now()->subHours(1),
-                ]
-            ];
-
-            foreach ($demoSales as $sale) {
-                $sale['order_number'] = 'INV-S' . $shopId . '-' . substr($sale['order_number'], 4);
-                try {
-                    Order::firstOrCreate(['order_number' => $sale['order_number']], $sale);
-                } catch (\Throwable $e) {
-                    // Ignore duplicate
-                }
-            }
-
-            $allOrders = Order::where('shop_id', $shopId)->get();
-            $query = Order::where('shop_id', $shopId);
-        }
-
         $totalSales = $allOrders->count();
 
         $totalRevenue = $allOrders->filter(function($o) {

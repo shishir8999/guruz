@@ -381,9 +381,14 @@ class ProductController extends Controller
                 'images',
                 'variants',
                 'reviews' => function($q) {
-                    $q->where('is_verified', true)
-                      ->with('user:id,name,avatar_url')
-                      ->latest();
+                    $q->where(function($sub) {
+                        $sub->where('status', 'approved')
+                            ->orWhere(function($sub2) {
+                                $sub2->where('is_verified', true)->whereNotIn('status', ['pending', 'rejected']);
+                            });
+                    })
+                    ->with('user:id,name,avatar_url')
+                    ->latest();
                 },
             ])
             ->where(function($q) use ($slug) {
@@ -451,6 +456,27 @@ class ProductController extends Controller
             'status'      => 'pending',
         ]);
 
-        return back()->with('success', 'আপনার রিভিউ সফলভাবে সাবমিট হয়েছে! অ্যাডমিন বা ভেন্ডরের অনুমোদনের পর এটি প্রদর্শিত হবে।');
+        // Notify Super Admins
+        try {
+            $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin', 'superadmin'])->get();
+            if ($admins->isEmpty()) {
+                $firstAdmin = \App\Models\User::find(1);
+                if ($firstAdmin) $admins = collect([$firstAdmin]);
+            }
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'type'    => 'new_review',
+                    'title'   => 'নতুন কাস্টমার রিভিউ এসেছে!',
+                    'body'    => "পণ্য '{$product->name}' এর জন্য একটি নতুন রিভিউ অনুমোদন অপেক্ষায় রয়েছে।",
+                    'link'    => '/admin/reviews-qna',
+                    'icon'    => 'star',
+                    'is_read' => false,
+                ]);
+            }
+            \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
+        } catch (\Throwable $e) {}
+
+        return back()->with('success', 'আপনার রিভিউ সফলভাবে সাবমিট হয়েছে! সুপার অ্যাডমিন অনুমোদনের পর এটি প্রদর্শিত হবে।');
     }
 }

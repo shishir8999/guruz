@@ -33,53 +33,6 @@ class SellerCommentController extends Controller
 
         $myProductIds = Product::where('shop_id', $shop->id)->pluck('id')->toArray();
 
-        // One-time initial seed check so deleted comments NEVER reappear on reload!
-        $isSeeded = \App\Models\SiteSetting::get('shop_comments_init_' . $shop->id, '0') === '1';
-
-        if (!$isSeeded) {
-            if (empty($myProductIds)) {
-                $prod = Product::create([
-                    'shop_id'   => $shop->id,
-                    'name'      => 'Premium Wireless Headphones',
-                    'slug'      => 'premium-wireless-headphones-' . $shop->id . '-' . rand(100, 999),
-                    'price'     => 2500,
-                    'stock'     => 50,
-                    'is_active' => true,
-                ]);
-                $myProductIds = [$prod->id];
-            }
-
-            $pId = $myProductIds[0];
-            $q1 = ProductQuestion::create([
-                'product_id'  => $pId,
-                'user_id'     => Auth::id(),
-                'question'    => 'এই প্রোডাক্টের সাথে কি ১ বছরের ওয়ারেন্টি পাওয়া যাবে?',
-                'is_answered' => true,
-            ]);
-            ProductAnswer::create([
-                'question_id' => $q1->id,
-                'user_id'     => Auth::id(),
-                'answer'      => 'হ্যাঁ স্যার, ১০০% অফিশিয়াল ১ বছরের রিপ্লেসমেন্ট ওয়ারেন্টি থাকবে।',
-            ]);
-
-            ProductQuestion::create([
-                'product_id'  => $pId,
-                'user_id'     => Auth::id(),
-                'question'    => 'ঢাকার বাইরে কুরিয়ার চার্জ কত পড়বে এবং কত দিনে ডেলিভারি পাবো?',
-                'is_answered' => false,
-            ]);
-
-            ProductReview::create([
-                'product_id'  => $pId,
-                'user_id'     => Auth::id(),
-                'rating'      => 5,
-                'comment'     => 'অসাধারণ প্রোডাক্ট! সাউন্ড কোয়ালিটি ও ব্যাটারি ব্যাকআপ খুবই ভালো। সেলারের রেসপন্সও চমৎকার ছিল।',
-                'is_verified' => true,
-            ]);
-
-            \App\Models\SiteSetting::set('shop_comments_init_' . $shop->id, '1');
-        }
-
         // Query real questions and reviews
         $questions = ProductQuestion::with(['product:id,name,primary_image_url', 'user:id,name', 'answers.user:id,name'])
             ->whereIn('product_id', $myProductIds)

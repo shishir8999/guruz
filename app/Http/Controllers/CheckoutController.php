@@ -467,20 +467,20 @@ class CheckoutController extends Controller
         }
 
         // Ensure currency amount reflects final net total after all discounts
-        // Determine primary vendor shop ID from cart items
+        // Determine primary vendor shop ID and all vendor shops from cart items
         $primaryShopId = null;
+        $vendorShopIds = [];
         foreach ($cart as $cItem) {
             $cProdId = $cItem['product_id'] ?? $cItem['id'] ?? null;
             if ($cProdId) {
                 $pModel = \App\Models\Product::find($cProdId);
                 if ($pModel && $pModel->shop_id) {
-                    $primaryShopId = $pModel->shop_id;
-                    break;
+                    if (!$primaryShopId) {
+                        $primaryShopId = $pModel->shop_id;
+                    }
+                    $vendorShopIds[$pModel->shop_id] = true;
                 }
             }
-        }
-        if (!$primaryShopId) {
-            $primaryShopId = 1;
         }
 
         $order = Order::create([
@@ -515,7 +515,7 @@ class CheckoutController extends Controller
             $productName = $item['name'] ?? $item['product_name'] ?? $item['title'] ?? ($product ? $product->name : 'Product #' . $productId);
             $price = (float)($item['price'] ?? ($product ? ($product->sale_price ?? $product->price) : 0));
             $quantity = (int)($item['quantity'] ?? $item['qty'] ?? 1);
-            $itemShopId = $product?->shop_id ?? $primaryShopId ?? 1;
+            $itemShopId = $product?->shop_id ?? null;
 
             $productImage = $item['image'] ?? $item['primary_image_url'] ?? $item['image_url'] ?? ($product?->primary_image_url ?? null);
             $options = $item['options'] ?? array_filter([
@@ -537,17 +537,49 @@ class CheckoutController extends Controller
             ]);
         }
 
-        // Notify Super Admin of the newly arrived order
+        // Notify Super Admin (and vendor if order contains vendor items)
         try {
-            \App\Models\Notification::create([
-                'user_id' => 1,
-                'type'    => 'new_order',
-                'title'   => 'নতুন কাস্টমার অর্ডার এসেছে!',
-                'body'    => "অর্ডার #{$order->order_number} (মোট: ৳" . number_format($order->total, 2) . ") এসেছে। অনুগ্রহ করে পর্যালোচনা করে প্রসেসিং করুন।",
-                'link'    => '/admin/orders',
-                'icon'    => 'shopping-bag',
-                'is_read' => false,
-            ]);
+            $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin', 'superadmin'])->get();
+            if ($admins->isEmpty()) {
+                $firstAdmin = \App\Models\User::find(1);
+                if ($firstAdmin) $admins = collect([$firstAdmin]);
+            }
+
+            $vendorShops = !empty($vendorShopIds) 
+                ? \App\Models\Shop::whereIn('id', array_keys($vendorShopIds))->get() 
+                : collect([]);
+
+            $vendorNames = $vendorShops->pluck('name')->implode(', ');
+
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'type'    => 'new_order',
+                    'title'   => $vendorShops->isNotEmpty() ? 'ভেন্ডর শপ থেকে নতুন অর্ডার এসেছে!' : 'নতুন কাস্টমার অর্ডার এসেছে!',
+                    'body'    => $vendorShops->isNotEmpty()
+                        ? "অর্ডার #{$order->order_number} (ভেন্ডর: {$vendorNames}, মোট: ৳" . number_format($order->total, 2) . ") এসেছে। অনুগ্রহ করে পর্যালোচনা করুন।"
+                        : "অর্ডার #{$order->order_number} (মোট: ৳" . number_format($order->total, 2) . ") এসেছে। অনুগ্রহ করে পর্যালোচনা করে প্রসেসিং করুন।",
+                    'link'    => '/admin/orders',
+                    'icon'    => 'shopping-bag',
+                    'is_read' => false,
+                ]);
+            }
+
+            // Also notify vendors whose products were ordered
+            foreach ($vendorShops as $vShop) {
+                if ($vShop->user_id) {
+                    \App\Models\Notification::create([
+                        'user_id' => $vShop->user_id,
+                        'type'    => 'new_vendor_order',
+                        'title'   => 'আপনার শপে নতুন অর্ডার এসেছে!',
+                        'body'    => "অর্ডার #{$order->order_number} এ আপনার শপের পণ্য অর্ডার করা হয়েছে (মোট: ৳" . number_format($order->total, 2) . ")।",
+                        'link'    => '/seller/orders',
+                        'icon'    => 'shopping-bag',
+                        'is_read' => false,
+                    ]);
+                }
+            }
+
             \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
         } catch (\Throwable $e) {}
 

@@ -912,16 +912,43 @@ class CustomerController extends Controller
             'comment' => 'required|string|min:3',
         ]);
 
+        $user = auth()->user();
+        $product = \App\Models\Product::find($request->product_id);
+
         \App\Models\ProductReview::create([
-            'user_id' => auth()->id(),
-            'product_id' => $request->product_id,
-            'order_id' => $request->order_id ?? null,
-            'rating' => $request->rating,
-            'comment' => $request->comment,
-            'is_verified' => true,
+            'user_id'     => $user?->id,
+            'user_name'   => $user?->name ?? 'কাস্টমার',
+            'user_email'  => $user?->email,
+            'product_id'  => $request->product_id,
+            'order_id'    => $request->order_id ?? null,
+            'rating'      => (int)$request->rating,
+            'comment'     => $request->comment,
+            'is_verified' => false,
+            'status'      => 'pending',
         ]);
 
-        return back()->with('success', 'আপনার রিভিউ সফলভাবে প্রকাশ করা হয়েছে!');
+        // Notify Super Admins
+        try {
+            $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin', 'superadmin'])->get();
+            if ($admins->isEmpty()) {
+                $firstAdmin = \App\Models\User::find(1);
+                if ($firstAdmin) $admins = collect([$firstAdmin]);
+            }
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'type'    => 'new_review',
+                    'title'   => 'নতুন কাস্টমার রিভিউ এসেছে!',
+                    'body'    => "পণ্য '" . ($product?->name ?? 'পণ্য') . "' এর জন্য একটি নতুন রিভিউ অনুমোদন অপেক্ষায় রয়েছে।",
+                    'link'    => '/admin/reviews-qna',
+                    'icon'    => 'star',
+                    'is_read' => false,
+                ]);
+            }
+            \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
+        } catch (\Throwable $e) {}
+
+        return back()->with('success', 'আপনার রিভিউ সফলভাবে সাবমিট হয়েছে! সুপার অ্যাডমিন অনুমোদনের পর এটি লাইভ হবে।');
     }
 
     public function updateReview(Request $request, $id)

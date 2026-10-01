@@ -21,15 +21,14 @@ class SellerOrderController extends Controller
             $shop = Shop::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'name'        => ($user->name ?? 'Vendor') . "'s Shop",
-                    'slug'        => Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
-                    'status'      => 'active',
-                    'is_approved' => true,
+                    'name'   => ($user->name ?? 'Vendor') . "'s Shop",
+                    'slug'   => Str::slug(($user->name ?? 'Vendor') . "-shop-" . $user->id),
+                    'status' => 'pending',
                 ]
             );
         }
 
-        $shopId = $shop ? $shop->id : 1;
+        $shopId = $shop ? $shop->id : 0;
 
         $query = Order::with(['items.product', 'shop', 'pickupRequests'])
             ->where(function($q) use ($shopId) {
@@ -63,7 +62,7 @@ class SellerOrderController extends Controller
 
         $mappedOrders = $orders->map(function($o) use ($shopId) {
             $shopItems = $o->items->filter(function($item) use ($shopId) {
-                return $item->shop_id == $shopId || ($item->product && $item->product->shop_id == $shopId) || empty($item->shop_id);
+                return $item->shop_id == $shopId || ($item->product && $item->product->shop_id == $shopId);
             });
             $latestPickup = $o->pickupRequests->last();
 
@@ -130,7 +129,7 @@ class SellerOrderController extends Controller
     {
         $user = Auth::user();
         $shop = $user ? $user->shop : null;
-        $shopId = $shop ? $shop->id : 1;
+        $shopId = $shop ? $shop->id : 0;
 
         $order = Order::where(function($q) use ($shopId) {
             $q->where('shop_id', $shopId)
@@ -238,7 +237,7 @@ class SellerOrderController extends Controller
     {
         $user = Auth::user();
         $shop = $user ? $user->shop : null;
-        $shopId = $shop ? $shop->id : 1;
+        $shopId = $shop ? $shop->id : 0;
 
         $order = Order::where(function($q) use ($shopId) {
             $q->where('shop_id', $shopId)
@@ -271,7 +270,7 @@ class SellerOrderController extends Controller
     {
         $user = Auth::user();
         $shop = $user ? $user->shop : null;
-        $shopId = $shop ? $shop->id : 1;
+        $shopId = $shop ? $shop->id : 0;
 
         $order = Order::where(function($q) use ($shopId) {
             $q->where('shop_id', $shopId)
@@ -318,8 +317,14 @@ class SellerOrderController extends Controller
             'Content-Disposition' => 'attachment; filename="orders_export.csv"',
         ];
 
-        $shopId = Auth::user()->shop ? Auth::user()->shop->id : 1;
-        $orders = Order::where('shop_id', $shopId)->latest()->get();
+        $shop = Auth::user()?->shop;
+        $shopId = $shop ? $shop->id : 0;
+        $orders = Order::where(function($q) use ($shopId) {
+            $q->where('shop_id', $shopId)
+              ->orWhereHas('items', function($sub) use ($shopId) {
+                  $sub->where('shop_id', $shopId);
+              });
+        })->latest()->get();
 
         $columns = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Email', 'Total Amount', 'Payment Status', 'Order Status'];
 
@@ -348,11 +353,15 @@ class SellerOrderController extends Controller
 
     public function destroy($id)
     {
-        $shopId = Auth::user()->shop ? Auth::user()->shop->id : 1;
-        $order = Order::where('shop_id', $shopId)->where('id', $id)->first();
-        if (!$order) {
-            $order = Order::findOrFail($id);
-        }
+        $shop = Auth::user()?->shop;
+        $shopId = $shop ? $shop->id : 0;
+        $order = Order::where(function($q) use ($shopId) {
+            $q->where('shop_id', $shopId)
+              ->orWhereHas('items', function($sub) use ($shopId) {
+                  $sub->where('shop_id', $shopId);
+              });
+        })->findOrFail($id);
+
         $number = $order->order_number;
         $order->delete();
 
@@ -361,11 +370,14 @@ class SellerOrderController extends Controller
 
     public function sendInvoiceEmail($id)
     {
-        $shopId = Auth::user()->shop ? Auth::user()->shop->id : 1;
-        $order = Order::where('shop_id', $shopId)->where('id', $id)->first();
-        if (!$order) {
-            $order = Order::findOrFail($id);
-        }
+        $shop = Auth::user()?->shop;
+        $shopId = $shop ? $shop->id : 0;
+        $order = Order::where(function($q) use ($shopId) {
+            $q->where('shop_id', $shopId)
+              ->orWhereHas('items', function($sub) use ($shopId) {
+                  $sub->where('shop_id', $shopId);
+              });
+        })->findOrFail($id);
 
         $sent = \App\Services\EmailService::sendInvoiceEmail($order);
         
