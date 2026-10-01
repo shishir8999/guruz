@@ -254,7 +254,7 @@ class AdminMessageController extends Controller
                 return response()->json(['success' => true, 'message' => $msg]);
             }
 
-            return back()->with('success', 'লাইভ চ্যাট মেসেজ সফলভাবে পাঠানো হয়েছে!');
+            return back();
         }
 
         // 2. If it's a Registered User Message
@@ -301,7 +301,7 @@ class AdminMessageController extends Controller
                 return response()->json(['success' => true, 'message' => $msg]);
             }
 
-            return back()->with('success', 'মেসেজ সফলভাবে পাঠানো হয়েছে!');
+            return back();
         }
 
         return back()->with('error', 'কোনো চ্যাট থ্রেড নির্বাচন করা হয়নি।');
