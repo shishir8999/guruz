@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Search, ShieldCheck, X, Clock, FileText, CheckCircle2, AlertTriangle, Building2, CreditCard, ExternalLink, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Search, ShieldCheck, X, Clock, FileText, CheckCircle2, AlertTriangle, Building2, CreditCard, ExternalLink, Image as ImageIcon, AlertCircle, Trash2, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 interface KycItem {
@@ -38,6 +38,7 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
     const [successMsg, setSuccessMsg] = useState('');
     const [rejectionReason, setRejectionReason] = useState('');
     const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const isPdf = (url?: string | null) => url ? url.toLowerCase().endsWith('.pdf') : false;
 
@@ -48,28 +49,133 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
     });
 
     const handleApproveKyc = (id: number) => {
+        setIsProcessing(true);
         router.post(`/admin/vendor-kyc/${id}/approve`, {}, {
             preserveScroll: true,
             onSuccess: () => {
+                setIsProcessing(false);
                 setShowReviewModal(false);
-                setSuccessMsg('Vendor KYC Approved & Shop Activated!');
-                setTimeout(() => setSuccessMsg(''), 4000);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'KYC অনুমোদিত!',
+                    text: 'ভেন্ডরের KYC সফলভাবে অনুমোদিত এবং শপ অ্যাক্টিভ করা হয়েছে।',
+                    timer: 2500,
+                    showConfirmButton: false,
+                });
+            },
+            onError: (errs) => {
+                setIsProcessing(false);
+                const msg = Object.values(errs).flat().join('\n') || 'KYC অনুমোদন করতে সমস্যা হয়েছে।';
+                Swal.fire('ত্রুটি!', msg, 'error');
             }
         });
     };
 
     const handleRejectKyc = (id: number) => {
         if (!rejectionReason.trim()) {
-            Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Please enter a rejection reason.', showConfirmButton: false, timer: 3000, timerProgressBar: true });
+            Swal.fire({ 
+                toast: true, 
+                position: 'top-end', 
+                icon: 'warning', 
+                title: 'অনুগ্রহ করে রিজেক্ট করার কারণ উল্লেখ করুন।', 
+                showConfirmButton: false, 
+                timer: 3000, 
+                timerProgressBar: true 
+            });
             return;
         }
+        setIsProcessing(true);
         router.post(`/admin/vendor-kyc/${id}/reject`, { rejection_reason: rejectionReason }, {
             preserveScroll: true,
             onSuccess: () => {
+                setIsProcessing(false);
                 setShowReviewModal(false);
                 setRejectionReason('');
-                setSuccessMsg('Vendor KYC Rejected.');
-                setTimeout(() => setSuccessMsg(''), 4000);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'KYC প্রত্যাখ্যাত হয়েছে!',
+                    text: 'ভেন্ডরের KYC আবেদন রিজেক্ট করা হয়েছে।',
+                    timer: 2500,
+                    showConfirmButton: false,
+                });
+            },
+            onError: (errs) => {
+                setIsProcessing(false);
+                const msg = Object.values(errs).flat().join('\n') || 'KYC রিজেক্ট করতে সমস্যা হয়েছে।';
+                Swal.fire('ত্রুটি!', msg, 'error');
+            }
+        });
+    };
+
+    const handleDeleteKyc = (id: number, shopName: string) => {
+        Swal.fire({
+            title: 'KYC ডিলিট করবেন?',
+            text: `ভেন্ডর "${shopName}"-এর KYC ও সমস্ত আপলোডকৃত ডকুমেন্টস স্থায়ীভাবে মুছে ফেলা হবে।`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'হ্যাঁ, ডিলিট করুন',
+            cancelButtonText: 'বাতিল'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setIsProcessing(true);
+                router.delete(`/admin/vendor-kyc/${id}`, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setIsProcessing(false);
+                        setShowReviewModal(false);
+                        setActiveKyc(null);
+                        Swal.fire('ডিলিট সম্পন্ন!', 'KYC ও সমস্ত ফাইল সফলভাবে মুছে ফেলা হয়েছে।', 'success');
+                    },
+                    onError: (errs) => {
+                        setIsProcessing(false);
+                        const msg = Object.values(errs).flat().join('\n') || 'KYC ডিলিট করতে সমস্যা হয়েছে।';
+                        Swal.fire('ত্রুটি!', msg, 'error');
+                    }
+                });
+            }
+        });
+    };
+
+    const handleDeleteDocument = (id: number, type: 'nid_front' | 'nid_back' | 'trade_license' | 'bank_statement', docTitle: string) => {
+        Swal.fire({
+            title: 'ডকুমেন্ট মুছবেন?',
+            text: `আপনি কি "${docTitle}" ফাইলটি মুছে ফেলতে চান?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'হ্যাঁ, মুছুন',
+            cancelButtonText: 'বাতিল'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setIsProcessing(true);
+                router.delete(`/admin/vendor-kyc/${id}/document/${type}`, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setIsProcessing(false);
+                        const fieldMap: Record<string, keyof KycItem> = {
+                            nid_front: 'nid_front_image',
+                            nid_back: 'nid_back_image',
+                            trade_license: 'trade_license_image',
+                            bank_statement: 'bank_statement_image'
+                        };
+                        const targetField = fieldMap[type];
+                        if (targetField && activeKyc) {
+                            setActiveKyc({
+                                ...activeKyc,
+                                [targetField]: undefined
+                            });
+                        }
+                        Swal.fire('মুছে ফেলা হয়েছে!', `"${docTitle}" ফাইলটি সফলভাবে ডিলিট করা হয়েছে।`, 'success');
+                    },
+                    onError: (errs) => {
+                        setIsProcessing(false);
+                        const msg = Object.values(errs).flat().join('\n') || 'ডকুমেন্ট মুছতে সমস্যা হয়েছে।';
+                        Swal.fire('ত্রুটি!', msg, 'error');
+                    }
+                });
             }
         });
     };
@@ -202,12 +308,22 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
 
                                         {/* Actions */}
                                         <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => { setActiveKyc(k); setShowReviewModal(true); }}
-                                                className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-semibold text-[12px] px-4 py-2 rounded-xl transition shadow-sm"
-                                            >
-                                                Review Documents
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => { setActiveKyc(k); setShowReviewModal(true); }}
+                                                    className="bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-semibold text-[12px] px-3.5 py-2 rounded-xl transition shadow-sm"
+                                                >
+                                                    Review Documents
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteKyc(k.id, k.shop_name)}
+                                                    className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
+                                                    title="KYC ও ডকুমেন্টস ডিলিট করুন"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -295,9 +411,20 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
                                                 <div className="flex items-center justify-between mb-1.5">
                                                     <p className="font-bold text-xs text-slate-700 uppercase">NID Front</p>
                                                     {activeKyc.nid_front_image && (
-                                                        <a href={activeKyc.nid_front_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
-                                                            <ExternalLink className="w-3 h-3" /> View Full
-                                                        </a>
+                                                        <div className="flex items-center gap-2">
+                                                            <a href={activeKyc.nid_front_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                                                                <ExternalLink className="w-3 h-3" /> View Full
+                                                            </a>
+                                                            <button
+                                                                type="button"
+                                                                disabled={isProcessing}
+                                                                onClick={() => handleDeleteDocument(activeKyc.id, 'nid_front', 'NID Front')}
+                                                                className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5 disabled:opacity-50"
+                                                                title="মুছে ফেলুন"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" /> মুছুন
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 {activeKyc.nid_front_image ? (
@@ -333,9 +460,20 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
                                                 <div className="flex items-center justify-between mb-1.5">
                                                     <p className="font-bold text-xs text-slate-700 uppercase">NID Back</p>
                                                     {activeKyc.nid_back_image && (
-                                                        <a href={activeKyc.nid_back_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
-                                                            <ExternalLink className="w-3 h-3" /> View Full
-                                                        </a>
+                                                        <div className="flex items-center gap-2">
+                                                            <a href={activeKyc.nid_back_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                                                                <ExternalLink className="w-3 h-3" /> View Full
+                                                            </a>
+                                                            <button
+                                                                type="button"
+                                                                disabled={isProcessing}
+                                                                onClick={() => handleDeleteDocument(activeKyc.id, 'nid_back', 'NID Back')}
+                                                                className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5 disabled:opacity-50"
+                                                                title="মুছে ফেলুন"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" /> মুছুন
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                                 {activeKyc.nid_back_image ? (
@@ -372,9 +510,20 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <p className="font-bold text-xs text-slate-700 uppercase">Trade License</p>
                                                         {activeKyc.trade_license_image && (
-                                                            <a href={activeKyc.trade_license_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
-                                                                <ExternalLink className="w-3 h-3" /> View Full
-                                                            </a>
+                                                            <div className="flex items-center gap-2">
+                                                                <a href={activeKyc.trade_license_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                                                                    <ExternalLink className="w-3 h-3" /> View Full
+                                                                </a>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={isProcessing}
+                                                                    onClick={() => handleDeleteDocument(activeKyc.id, 'trade_license', 'Trade License')}
+                                                                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5 disabled:opacity-50"
+                                                                    title="মুছে ফেলুন"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" /> মুছুন
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     {activeKyc.trade_license_image ? (
@@ -412,9 +561,20 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
                                                     <div className="flex items-center justify-between mb-1.5">
                                                         <p className="font-bold text-xs text-slate-700 uppercase">Bank Statement</p>
                                                         {activeKyc.bank_statement_image && (
-                                                            <a href={activeKyc.bank_statement_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
-                                                                <ExternalLink className="w-3 h-3" /> View Full
-                                                            </a>
+                                                            <div className="flex items-center gap-2">
+                                                                <a href={activeKyc.bank_statement_image} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline flex items-center gap-1">
+                                                                    <ExternalLink className="w-3 h-3" /> View Full
+                                                                </a>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={isProcessing}
+                                                                    onClick={() => handleDeleteDocument(activeKyc.id, 'bank_statement', 'Bank Statement')}
+                                                                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5 disabled:opacity-50"
+                                                                    title="মুছে ফেলুন"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" /> মুছুন
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     {activeKyc.bank_statement_image ? (
@@ -463,19 +623,37 @@ export default function VendorKycPage({ kycList: initialKycList }: { kycList: Ky
                             ></textarea>
                         </div>
 
-                        <div className="pt-3 flex gap-3">
+                        <div className="pt-3 flex flex-wrap items-center gap-2">
                             <button
-                                onClick={() => handleRejectKyc(activeKyc.id)}
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-sm py-2.5 rounded-xl shadow-sm transition"
+                                type="button"
+                                disabled={isProcessing}
+                                onClick={() => handleDeleteKyc(activeKyc.id, activeKyc.shop_name)}
+                                className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition border border-rose-200 disabled:opacity-50"
+                                title="সম্পূর্ণ KYC ও সমস্ত ফাইল মুছে ফেলুন"
                             >
-                                Reject KYC
+                                <Trash2 className="w-3.5 h-3.5" />
+                                ডিলিট KYC
                             </button>
-                            <button
-                                onClick={() => handleApproveKyc(activeKyc.id)}
-                                className="flex-1 bg-[#10b981] hover:bg-emerald-600 text-white font-bold text-sm py-2.5 rounded-xl shadow-sm transition"
-                            >
-                                Approve KYC
-                            </button>
+                            <div className="flex-1 flex gap-2">
+                                <button
+                                    type="button"
+                                    disabled={isProcessing}
+                                    onClick={() => handleRejectKyc(activeKyc.id)}
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm py-2.5 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    Reject KYC
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isProcessing}
+                                    onClick={() => handleApproveKyc(activeKyc.id)}
+                                    className="flex-1 bg-[#10b981] hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm py-2.5 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                                    Approve KYC
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

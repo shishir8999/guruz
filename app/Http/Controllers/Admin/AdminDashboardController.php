@@ -852,7 +852,11 @@ class AdminDashboardController extends Controller
         UserRole::firstOrCreate(['user_id' => $shop->user_id, 'role' => 'seller']);
 
         // Publish any draft products of this shop upon approval
-        Product::where('shop_id', $shop->id)->update(['is_active' => true, 'status' => 'published']);
+        $productUpdates = ['is_active' => true];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+            $productUpdates['status'] = 'published';
+        }
+        Product::where('shop_id', $shop->id)->update($productUpdates);
 
         \Illuminate\Support\Facades\Cache::forget('home_featured_products');
         \Illuminate\Support\Facades\Cache::forget('home_latest_products');
@@ -1165,8 +1169,32 @@ class AdminDashboardController extends Controller
         
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'active']);
-            UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
-            Product::where('shop_id', $kyc->shop_id)->update(['is_active' => true, 'status' => 'published']);
+            if ($kyc->user_id) {
+                UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
+            }
+            $productUpdates = ['is_active' => true];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                $productUpdates['status'] = 'published';
+            }
+            Product::where('shop_id', $kyc->shop_id)->update($productUpdates);
+        }
+
+        // Notify Vendor
+        if ($kyc->user_id) {
+            try {
+                $shopTitle = $kyc->shop ? $kyc->shop->name : 'আপনার শপ';
+                Notification::create([
+                    'user_id' => $kyc->user_id,
+                    'type'    => 'vendor_kyc_approved',
+                    'title'   => 'KYC অনুমোদিত হয়েছে 🎉',
+                    'body'    => "অভিনন্দন! আপনার শপ '{$shopTitle}' এর KYC ও প্রোফাইল সফলভাবে অনুমোদিত ও অ্যাক্টিভ করা হয়েছে।",
+                    'link'    => '/seller/dashboard',
+                    'icon'    => 'ShieldCheck',
+                    'is_read' => false,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('KYC approve notification failed: ' . $e->getMessage());
+            }
         }
         
         \Illuminate\Support\Facades\Cache::forget('home_featured_products');
@@ -1193,7 +1221,29 @@ class AdminDashboardController extends Controller
         
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'rejected']);
-            Product::where('shop_id', $kyc->shop_id)->update(['is_active' => false, 'status' => 'draft']);
+            $productUpdates = ['is_active' => false];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                $productUpdates['status'] = 'draft';
+            }
+            Product::where('shop_id', $kyc->shop_id)->update($productUpdates);
+        }
+
+        // Notify Vendor
+        if ($kyc->user_id) {
+            try {
+                $shopTitle = $kyc->shop ? $kyc->shop->name : 'আপনার শপ';
+                Notification::create([
+                    'user_id' => $kyc->user_id,
+                    'type'    => 'vendor_kyc_rejected',
+                    'title'   => 'KYC আবেদন প্রত্যাখ্যাত হয়েছে ⚠️',
+                    'body'    => "আপনার শপ '{$shopTitle}' এর KYC আবেদন প্রত্যাখ্যাত হয়েছে। কারণ: " . $request->rejection_reason,
+                    'link'    => '/seller/kyc',
+                    'icon'    => 'AlertTriangle',
+                    'is_read' => false,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('KYC reject notification failed: ' . $e->getMessage());
+            }
         }
         
         \Illuminate\Support\Facades\Cache::forget('home_featured_products');
@@ -1202,6 +1252,67 @@ class AdminDashboardController extends Controller
         \Illuminate\Support\Facades\Cache::forget('home_active_shops');
 
         return back()->with('success', 'Vendor KYC Rejected & Products Hidden!');
+    }
+
+    public function destroyKyc($id)
+    {
+        $kyc = VendorKyc::findOrFail($id);
+        
+        // Delete all stored document files
+        $fileFields = ['nid_front_image', 'nid_back_image', 'trade_license_image', 'bank_statement_image'];
+        foreach ($fileFields as $field) {
+            $path = $kyc->$field;
+            if ($path) {
+                $cleanPath = preg_replace('/^\/?storage\//', '', ltrim($path, '/'));
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($cleanPath)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($cleanPath);
+                }
+            }
+        }
+
+        if ($kyc->shop) {
+            $kyc->shop->update(['status' => 'pending']);
+            $productUpdates = ['is_active' => false];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                $productUpdates['status'] = 'draft';
+            }
+            Product::where('shop_id', $kyc->shop_id)->update($productUpdates);
+        }
+
+        $shopName = $kyc->shop ? $kyc->shop->name : 'Shop';
+        $kyc->delete();
+
+        \Illuminate\Support\Facades\Cache::forget('home_active_shops');
+
+        return back()->with('success', "ভেন্ডর '{$shopName}'-এর KYC ও সমস্ত ডকুমেন্টস সফলভাবে মুছে ফেলা হয়েছে।");
+    }
+
+    public function destroyKycDocument($id, $type)
+    {
+        $allowedTypes = [
+            'nid_front'      => 'nid_front_image',
+            'nid_back'       => 'nid_back_image',
+            'trade_license'  => 'trade_license_image',
+            'bank_statement' => 'bank_statement_image',
+        ];
+
+        if (!array_key_exists($type, $allowedTypes)) {
+            return back()->with('error', 'অবৈধ ডকুমেন্টের ধরণ।');
+        }
+
+        $field = $allowedTypes[$type];
+        $kyc = VendorKyc::findOrFail($id);
+
+        $path = $kyc->$field;
+        if ($path) {
+            $cleanPath = preg_replace('/^\/?storage\//', '', ltrim($path, '/'));
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($cleanPath)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($cleanPath);
+            }
+            $kyc->update([$field => null]);
+        }
+
+        return back()->with('success', 'ডকুমেন্টটি সফলভাবে মুছে ফেলা হয়েছে।');
     }
 
     public function categoryRequests(Request $request): Response

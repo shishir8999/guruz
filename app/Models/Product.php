@@ -24,7 +24,7 @@ class Product extends Model
         'colors', 'sizes', 'materials', 'tags',
         'video_url', 'meta_title', 'meta_description',
         'rating', 'total_reviews',
-        'is_featured', 'is_active', 'is_retail', 'is_wholesale', 'is_flash_sale',
+        'is_featured', 'is_active', 'status', 'is_retail', 'is_wholesale', 'is_flash_sale',
         'min_vip_level',
     ];
 
@@ -52,8 +52,12 @@ class Product extends Model
     {
         return $query->where('products.is_active', true)
             ->where(function ($sqStatus) {
-                $sqStatus->where('products.status', 'published')
-                         ->orWhereNull('products.status');
+                if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                    $sqStatus->where('products.status', 'published')
+                             ->orWhereNull('products.status');
+                } else {
+                    $sqStatus->whereRaw('1 = 1');
+                }
             })
             ->where(function ($q) {
                 // 1. Direct admin products (no shop attached)
@@ -62,16 +66,15 @@ class Product extends Model
                       $shopQuery->where(function ($sq) {
                           // 2. Admin owned shop (always published if product is_active)
                           $sq->whereHas('owner', function ($userQuery) {
-                              $userQuery->whereIn('role', ['admin', 'super_admin', 'superadmin'])
-                                  ->orWhereHas('roles', function ($rq) {
-                                      $rq->whereIn('role', ['admin', 'super_admin', 'superadmin']);
-                                  })
-                                  ->orWhereIn('email', [
-                                      'admin@guruz.com',
-                                      'shishirbarai2050@gmail.com',
-                                      'shishirbarai019@gmail.com',
-                                      'shishirbarai01982708789@gmail.com',
-                                  ]);
+                              $userQuery->whereHas('roles', function ($rq) {
+                                  $rq->whereIn('role', ['admin', 'super_admin', 'superadmin']);
+                              })
+                              ->orWhereIn('email', [
+                                  'admin@guruz.com',
+                                  'shishirbarai2050@gmail.com',
+                                  'shishirbarai019@gmail.com',
+                                  'shishirbarai01982708789@gmail.com',
+                              ]);
                           })
                           // 3. Vendor shop: shop must be active AND KYC must be approved by Super Admin
                           ->orWhere(function ($vendorSq) {

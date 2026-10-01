@@ -1002,8 +1002,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // Vendor KYC Routes
     Route::get('/vendor-kyc', [AdminDashboardController::class, 'vendorKyc'])->name('vendor-kyc');
-    Route::post('/vendor-kyc/{id}/approve', [AdminDashboardController::class, 'approveKyc'])->name('admin.vendor-kyc.approve');
-    Route::post('/vendor-kyc/{id}/reject', [AdminDashboardController::class, 'rejectKyc'])->name('admin.vendor-kyc.reject');
+    Route::post('/vendor-kyc/{id}/approve', [AdminDashboardController::class, 'approveKyc'])->name('vendor-kyc.approve');
+    Route::post('/vendor-kyc/{id}/reject', [AdminDashboardController::class, 'rejectKyc'])->name('vendor-kyc.reject');
+    Route::delete('/vendor-kyc/{id}', [AdminDashboardController::class, 'destroyKyc'])->name('vendor-kyc.destroy');
+    Route::delete('/vendor-kyc/{id}/document/{type}', [AdminDashboardController::class, 'destroyKycDocument'])->name('vendor-kyc.document.destroy');
 
     // Vendor Category Requests Routes
     Route::get('/category-requests', [\App\Http\Controllers\Admin\AdminCategoryRequestController::class, 'index'])->name('admin.category-requests');

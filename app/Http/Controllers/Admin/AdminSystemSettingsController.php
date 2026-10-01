@@ -204,8 +204,14 @@ class AdminSystemSettingsController extends Controller
 
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'active']);
-            \App\Models\UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
-            \App\Models\Product::where('shop_id', $kyc->shop_id)->update(['is_active' => true, 'status' => 'published']);
+            if ($kyc->user_id) {
+                \App\Models\UserRole::firstOrCreate(['user_id' => $kyc->user_id, 'role' => 'vendor']);
+            }
+            $productUpdates = ['is_active' => true];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                $productUpdates['status'] = 'published';
+            }
+            \App\Models\Product::where('shop_id', $kyc->shop_id)->update($productUpdates);
         }
 
         \Illuminate\Support\Facades\Cache::forget('home_featured_products');
@@ -227,7 +233,11 @@ class AdminSystemSettingsController extends Controller
 
         if ($kyc->shop) {
             $kyc->shop->update(['status' => 'rejected']);
-            \App\Models\Product::where('shop_id', $kyc->shop_id)->update(['is_active' => false, 'status' => 'draft']);
+            $productUpdates = ['is_active' => false];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('products', 'status')) {
+                $productUpdates['status'] = 'draft';
+            }
+            \App\Models\Product::where('shop_id', $kyc->shop_id)->update($productUpdates);
         }
 
         \Illuminate\Support\Facades\Cache::forget('home_featured_products');
