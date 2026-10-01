@@ -1059,6 +1059,11 @@ class AdminDashboardController extends Controller
             'categories' => $categories,
             'brands' => $brands,
             'units' => $units,
+            'promotionalLabels' => [
+                'flash_sale' => \App\Models\SiteSetting::get('promo_label_flash_sale', '⚡ Flash Sale / ফ্ল্যাশ সেল সেকশনে যোগ করুন'),
+                'featured'   => \App\Models\SiteSetting::get('promo_label_featured', '⭐ Guruz Verified / Featured Product'),
+                'special'    => \App\Models\SiteSetting::get('promo_label_special', '🎁 Guruz Special / গুরুজ স্পেশাল সেকশনে যোগ করুন'),
+            ],
         ]);
     }
 
@@ -1088,6 +1093,11 @@ class AdminDashboardController extends Controller
             'brands' => $brands,
             'units' => $units,
             'is_guruz_special' => in_array($product->id, $specialIds),
+            'promotionalLabels' => [
+                'flash_sale' => \App\Models\SiteSetting::get('promo_label_flash_sale', '⚡ Flash Sale / ফ্ল্যাশ সেল সেকশনে যোগ করুন'),
+                'featured'   => \App\Models\SiteSetting::get('promo_label_featured', '⭐ Guruz Verified / Featured Product'),
+                'special'    => \App\Models\SiteSetting::get('promo_label_special', '🎁 Guruz Special / গুরুজ স্পেশাল সেকশনে যোগ করুন'),
+            ],
         ]);
     }
 

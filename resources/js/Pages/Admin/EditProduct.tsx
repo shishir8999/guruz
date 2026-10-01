@@ -1,13 +1,45 @@
 import React, { useState, useRef } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Wand2, RefreshCw, Plus, Upload, CheckCircle2, AlertTriangle, Save, X } from 'lucide-react';
+import { Wand2, RefreshCw, Plus, Upload, CheckCircle2, AlertTriangle, Save, X, Settings } from 'lucide-react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import WarrantySelector from '@/Components/WarrantySelector';
 
 export default function EditProduct() {
     const { props } = usePage<any>();
-    const { shops = [], categories = [], brands = [], units = [], product = {}, is_guruz_special = false } = props;
+    const { shops = [], categories = [], brands = [], units = [], product = {}, is_guruz_special = false, promotionalLabels: initialPromoLabels } = props;
+
+    const [promoLabels, setPromoLabels] = useState<{ flash_sale: string; featured: string; special: string }>({
+        flash_sale: initialPromoLabels?.flash_sale || props.siteSettings?.promo_label_flash_sale || '⚡ Flash Sale / ফ্ল্যাশ সেল সেকশনে যোগ করুন',
+        featured: initialPromoLabels?.featured || props.siteSettings?.promo_label_featured || '⭐ Guruz Verified / Featured Product',
+        special: initialPromoLabels?.special || props.siteSettings?.promo_label_special || '🎁 Guruz Special / গুরুজ স্পেশাল সেকশনে যোগ করুন',
+    });
+    const [showPromoModal, setShowPromoModal] = useState(false);
+    const [editPromoLabels, setEditPromoLabels] = useState(promoLabels);
+    const [savingPromoLabels, setSavingPromoLabels] = useState(false);
+
+    const handleSavePromoLabels = () => {
+        setSavingPromoLabels(true);
+        router.post('/admin/settings/promotional-labels', editPromoLabels, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSavingPromoLabels(false);
+                setPromoLabels(editPromoLabels);
+                setShowPromoModal(false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'টেক্সট সফলভাবে আপডেট হয়েছে!',
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            },
+            onError: (errs) => {
+                setSavingPromoLabels(false);
+                const msg = Object.values(errs).flat().join('\n') || 'টেক্সট সেভ করতে সমস্যা হয়েছে।';
+                Swal.fire('ত্রুটি!', msg, 'error');
+            }
+        });
+    };
 
     const [localUnits, setLocalUnits] = useState<{ id?: number; name: string }[]>(
         units && units.length > 0 ? units : [{ name: 'Pcs' }, { name: 'Kg' }, { name: 'Ltr' }]
@@ -461,7 +493,17 @@ export default function EditProduct() {
 
                             {/* PROMOTIONAL BADGES & FLASH SALE */}
                             <div className="bg-amber-50 dark:bg-slate-800/60 border border-amber-200 dark:border-amber-900/50 rounded-xl p-3.5 space-y-2.5">
-                                <label className="block text-[10px] font-black uppercase text-amber-800 dark:text-amber-400">PROMOTIONAL SECTIONS</label>
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-[10px] font-black uppercase text-amber-800 dark:text-amber-400">PROMOTIONAL SECTIONS</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setEditPromoLabels(promoLabels); setShowPromoModal(true); }}
+                                        className="text-[10px] font-bold text-amber-800 hover:text-amber-950 bg-amber-200/70 hover:bg-amber-200 dark:bg-amber-900/60 dark:text-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1 transition cursor-pointer"
+                                        title="সেকশনের নাম ও টেক্সট পরিবর্তন করুন"
+                                    >
+                                        <Settings className="w-3 h-3" /> টেক্সট এডিট
+                                    </button>
+                                </div>
                                 
                                 <label className="flex items-center gap-2.5 cursor-pointer text-xs font-extrabold text-slate-800 dark:text-slate-200">
                                     <input
@@ -470,7 +512,7 @@ export default function EditProduct() {
                                         onChange={e => setIsFlashSale(e.target.checked)}
                                         className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
                                     />
-                                    <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">⚡ Flash Sale / ফ্ল্যাশ সেল সেকশনে যোগ করুন</span>
+                                    <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">{promoLabels.flash_sale}</span>
                                 </label>
 
                                 <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -480,7 +522,7 @@ export default function EditProduct() {
                                         onChange={e => setIsFeatured(e.target.checked)}
                                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                                     />
-                                    <span className="flex items-center gap-1">⭐ Guruz Verified / Featured Product</span>
+                                    <span className="flex items-center gap-1">{promoLabels.featured}</span>
                                 </label>
 
                                 <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -491,7 +533,7 @@ export default function EditProduct() {
                                         className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                                     />
                                     <span className="flex items-center gap-1.5 font-extrabold text-purple-700 dark:text-purple-400">
-                                        🎁 Guruz Special / গুরুজ স্পেশাল সেকশনে যোগ করুন
+                                        {promoLabels.special}
                                     </span>
                                 </label>
                             </div>
@@ -643,6 +685,85 @@ export default function EditProduct() {
                     </div>
                 </form>
             </div>
+
+            {/* Modal for editing promotional labels */}
+            {showPromoModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between border-b pb-3 border-slate-100 dark:border-slate-800">
+                            <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                                <Settings className="w-5 h-5 text-amber-600" /> প্রমোশনাল সেকশন টেক্সট পরিবর্তন
+                            </h3>
+                            <button onClick={() => setShowPromoModal(false)} className="text-slate-400 hover:text-slate-600 transition">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            নিচের টেক্সটগুলো এডিট করে আপনার মনের মতো নাম দিন। সংরক্ষণ করার পর প্রোডাক্ট ফর্মে এবং স্টোরফ্রন্টে এই নাম প্রদর্শিত হবে।
+                        </p>
+
+                        <div className="space-y-3.5 text-xs">
+                            <div>
+                                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    ⚡ Flash Sale সেকশনের টেক্সট
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editPromoLabels.flash_sale}
+                                    onChange={e => setEditPromoLabels({ ...editPromoLabels, flash_sale: e.target.value })}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    placeholder="⚡ Flash Sale / ফ্ল্যাশ সেল সেকশনে যোগ করুন"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    ⭐ Guruz Verified / Featured সেকশনের টেক্সট
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editPromoLabels.featured}
+                                    onChange={e => setEditPromoLabels({ ...editPromoLabels, featured: e.target.value })}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    placeholder="⭐ Guruz Verified / Featured Product"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                    🎁 Guruz Special সেকশনের টেক্সট
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editPromoLabels.special}
+                                    onChange={e => setEditPromoLabels({ ...editPromoLabels, special: e.target.value })}
+                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    placeholder="🎁 Guruz Special / গুরুজ স্পেশাল সেকশনে যোগ করুন"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-3 flex gap-2 justify-end border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                type="button"
+                                onClick={() => setShowPromoModal(false)}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition"
+                            >
+                                বাতিল
+                            </button>
+                            <button
+                                type="button"
+                                disabled={savingPromoLabels}
+                                onClick={handleSavePromoLabels}
+                                className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow-sm disabled:opacity-50"
+                            >
+                                {savingPromoLabels ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

@@ -59,48 +59,6 @@ class SellerReportIssueController extends Controller
 
         $shopId = $shop ? $shop->id : 1;
 
-        // Seed initial tickets matching screenshot if empty
-        if (VendorSupportTicket::where('shop_id', $shopId)->count() === 0) {
-            VendorSupportTicket::create([
-                'ticket_number' => '#TKT-991',
-                'shop_id'       => $shopId,
-                'user_id'       => $user ? $user->id : 1,
-                'subject'       => 'Payment not received for Order #90234',
-                'category'      => 'Payment & Payout',
-                'priority'      => 'High',
-                'status'        => 'Open',
-                'description'   => 'I submitted a payout request for Order #90234 3 days ago. The status shows approved in Super Admin Vault, but funds have not reached my City Bank account yet.',
-                'admin_reply'   => 'Hello! Super Admin finance team is verifying the bank clearing reference. The payout will be transferred within 2 hours.',
-                'created_at'    => now()->subDays(2),
-            ]);
-
-            VendorSupportTicket::create([
-                'ticket_number' => '#TKT-985',
-                'shop_id'       => $shopId,
-                'user_id'       => $user ? $user->id : 1,
-                'subject'       => 'Product variations bug in add product form',
-                'category'      => 'Bug / Technical Issue',
-                'priority'      => 'Medium',
-                'status'        => 'In Progress',
-                'description'   => 'When selecting multiple color variations (Red, Blue) in the Add Product form, the price input resets automatically.',
-                'admin_reply'   => 'Our technical team is reviewing the Inertia form state. A fix will be deployed shortly.',
-                'created_at'    => now()->subDays(5),
-            ]);
-
-            VendorSupportTicket::create([
-                'ticket_number' => '#TKT-942',
-                'shop_id'       => $shopId,
-                'user_id'       => $user ? $user->id : 1,
-                'subject'       => 'How to integrate with external courier?',
-                'category'      => 'Courier & Dispatch',
-                'priority'      => 'Low',
-                'status'        => 'Resolved',
-                'description'   => 'Can I use Steadfast Courier API keys directly or does Super Admin manage the parcel pickup?',
-                'admin_reply'   => 'Super Admin manages all master courier APIs centrally. You just submit pickup requests from your vendor dashboard!',
-                'created_at'    => now()->subDays(10),
-            ]);
-        }
-
         $query = VendorSupportTicket::where('shop_id', $shopId);
 
         if ($request->filled('status') && $request->status !== 'All') {
@@ -147,7 +105,7 @@ class SellerReportIssueController extends Controller
         $shop = $user ? $user->shop : null;
         $shopId = $shop ? $shop->id : 1;
 
-        VendorSupportTicket::create([
+        $ticket = VendorSupportTicket::create([
             'ticket_number' => '#TKT-' . rand(100, 999),
             'shop_id'       => $shopId,
             'user_id'       => $user ? $user->id : 1,
@@ -157,6 +115,32 @@ class SellerReportIssueController extends Controller
             'status'        => 'Open',
             'description'   => $validated['description'],
         ]);
+
+        try {
+            $admins = \App\Models\User::whereHas('roles', function($q) {
+                $q->whereIn('role', ['admin', 'super_admin', 'superadmin']);
+            })->orWhereIn('email', [
+                'admin@guruz.com',
+                'shishirbarai2050@gmail.com',
+                'shishirbarai019@gmail.com',
+                'shishirbarai01982708789@gmail.com'
+            ])->get();
+
+            $shopName = $shop ? $shop->name : ($user->name ?? 'ভেন্ডর');
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'type'    => 'vendor_support_ticket',
+                    'title'   => 'নতুন ভেন্ডর সাপোর্ট টিকিট (' . $ticket->ticket_number . ')',
+                    'body'    => "ভেন্ডর '{$shopName}' একটি নতুন সাপোর্ট টিকিট পাঠিয়েছেন: {$validated['subject']}",
+                    'link'    => '/admin/vendor-tickets',
+                    'icon'    => 'Ticket',
+                    'is_read' => false,
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
+        \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
 
         return redirect()->back()->with('success', 'Support ticket created successfully! Super Admin support team will respond shortly.');
     }

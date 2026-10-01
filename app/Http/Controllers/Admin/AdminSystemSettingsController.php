@@ -248,6 +248,23 @@ class AdminSystemSettingsController extends Controller
         return back()->with('success', 'Vendor KYC Rejected & Products Hidden.');
     }
 
+    public function updatePromotionalLabels(Request $request)
+    {
+        $request->validate([
+            'flash_sale' => 'required|string|max:255',
+            'featured'   => 'required|string|max:255',
+            'special'    => 'required|string|max:255',
+        ]);
+
+        SiteSetting::set('promo_label_flash_sale', $request->flash_sale, 'promotions');
+        SiteSetting::set('promo_label_featured', $request->featured, 'promotions');
+        SiteSetting::set('promo_label_special', $request->special, 'promotions');
+
+        \Illuminate\Support\Facades\Cache::forget('all_site_settings_map');
+
+        return back()->with('success', 'প্রমোশনাল সেকশনের টেক্সট সফলভাবে আপডেট করা হয়েছে!');
+    }
+
     public function systemConfig()
     {
         $settings = SiteSetting::where('group', 'system')->pluck('value', 'key');

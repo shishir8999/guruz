@@ -959,6 +959,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/system/optimize', [\App\Http\Controllers\Admin\AdminSystemSettingsController::class, 'optimize'])->name('system.optimize');
     Route::get('/system/feature-limits', [\App\Http\Controllers\Admin\AdminSystemSettingsController::class, 'featureLimits'])->name('system.feature-limits');
     Route::post('/system/feature-limits', [\App\Http\Controllers\Admin\AdminSystemSettingsController::class, 'updateFeatureLimits'])->name('system.feature-limits.update');
+    Route::post('/settings/promotional-labels', [\App\Http\Controllers\Admin\AdminSystemSettingsController::class, 'updatePromotionalLabels'])->name('settings.promotional-labels');
 
     // Security 2FA
     Route::post('/security/two-factor/{id}/toggle', [\App\Http\Controllers\Admin\AdminSecurityController::class, 'toggleTwoFactor'])->name('security.2fa.toggle');
