@@ -36,7 +36,8 @@ class SellerOrderController extends Controller
                   ->orWhereHas('items', function($sub) use ($shopId) {
                       $sub->where('shop_id', $shopId);
                   });
-            });
+            })
+            ->where('status', '!=', 'pending');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -209,17 +210,24 @@ class SellerOrderController extends Controller
             ]);
         } catch (\Throwable $e) {}
 
-        // Notify Super Admin
+        // Notify Super Admins
         try {
-            \App\Models\Notification::create([
-                'user_id' => 1,
-                'type'    => 'pickup_request_created',
-                'title'   => '📦 ভেন্ডর কুরিয়ারে পিকআপ রিকোয়েস্ট পাঠিয়েছে!',
-                'body'    => "অর্ডার #{$order->order_number}-এর জন্য {$validated['courier_name']} কুরিয়ারে পিকআপ রিকোয়েস্ট পাঠানো হয়েছে। ট্র্যাকিং আইডি: {$consignmentId}",
-                'link'    => '/admin/orders',
-                'icon'    => 'truck',
-                'is_read' => false,
-            ]);
+            $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin', 'superadmin'])->get();
+            if ($admins->isEmpty()) {
+                $firstAdmin = \App\Models\User::find(1);
+                if ($firstAdmin) $admins = collect([$firstAdmin]);
+            }
+            foreach ($admins as $adm) {
+                \App\Models\Notification::create([
+                    'user_id' => $adm->id,
+                    'type'    => 'pickup_request_created',
+                    'title'   => '📦 ভেন্ডর কুরিয়ারে পিকআপ রিকোয়েস্ট পাঠিয়েছে!',
+                    'body'    => "অর্ডার #{$order->order_number}-এর জন্য {$validated['courier_name']} কুরিয়ারে পিকআপ রিকোয়েস্ট পাঠানো হয়েছে। ট্র্যাকিং আইডি: {$consignmentId}",
+                    'link'    => '/admin/orders',
+                    'icon'    => 'truck',
+                    'is_read' => false,
+                ]);
+            }
         } catch (\Throwable $e) {}
 
         if ($request->wantsJson()) {
@@ -324,7 +332,7 @@ class SellerOrderController extends Controller
               ->orWhereHas('items', function($sub) use ($shopId) {
                   $sub->where('shop_id', $shopId);
               });
-        })->latest()->get();
+        })->where('status', '!=', 'pending')->latest()->get();
 
         $columns = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Email', 'Total Amount', 'Payment Status', 'Order Status'];
 

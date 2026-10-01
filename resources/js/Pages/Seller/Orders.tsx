@@ -146,7 +146,7 @@ export default function Orders({
         });
     };
 
-    const tabs = ['All Orders', 'Processing', 'Shipped', 'Delivered', 'Pending', 'Cancelled'];
+    const tabs = ['All Orders', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
     const filteredOrders = orders.filter(o => {
         const ordNo = o.order_number || `GZ-${o.id}`;

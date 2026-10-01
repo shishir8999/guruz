@@ -983,7 +983,34 @@ class AdminDashboardController extends Controller
     public function updateOrderStatus(Request $request, Order $order)
     {
         $request->validate(['status' => 'required|string']);
-        $order->update(['status' => $request->status]);
+        $oldStatus = strtolower($order->status ?? '');
+        $newStatus = strtolower($request->status);
+        $order->update(['status' => $newStatus]);
+
+        if ($oldStatus !== $newStatus && in_array($newStatus, ['confirmed', 'processing'])) {
+            try {
+                $vendorShopIds = $order->items()->pluck('shop_id')->filter()->unique()->toArray();
+                if ($order->shop_id) {
+                    $vendorShopIds[] = $order->shop_id;
+                }
+                $shops = \App\Models\Shop::whereIn('id', array_unique($vendorShopIds))->get();
+                foreach ($shops as $vShop) {
+                    if ($vShop->user_id) {
+                        \App\Models\Notification::create([
+                            'user_id' => $vShop->user_id,
+                            'type'    => 'order_processing',
+                            'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
+                            'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
+                            'link'    => '/seller/orders',
+                            'icon'    => 'truck',
+                            'is_read' => false,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
         return back()->with('success', 'Order status updated.');
     }
 

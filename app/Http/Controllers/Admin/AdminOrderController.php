@@ -144,23 +144,26 @@ class AdminOrderController extends Controller
             if (in_array($newStatus, ['confirmed', 'processing'])) {
                 \App\Services\EmailService::sendOrderConfirmationEmail($order);
                 
-                // Notify Vendor Shop Owner
-                $shop = $order->shop;
-                if (!$shop && $order->items->isNotEmpty()) {
-                    $shop = $order->items->first()?->product?->shop;
+                // Notify Vendor Shop Owners
+                $vendorShopIds = $order->items->pluck('shop_id')->filter()->unique()->toArray();
+                if ($order->shop_id) {
+                    $vendorShopIds[] = $order->shop_id;
                 }
-                if ($shop && $shop->user_id && $shop->user_id != 1) {
-                    try {
-                        \App\Models\Notification::create([
-                            'user_id' => $shop->user_id,
-                            'type'    => 'order_processing',
-                            'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
-                            'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
-                            'link'    => '/seller/orders',
-                            'icon'    => 'truck',
-                            'is_read' => false,
-                        ]);
-                    } catch (\Throwable $e) {}
+                $shops = \App\Models\Shop::whereIn('id', array_unique($vendorShopIds))->get();
+                foreach ($shops as $shop) {
+                    if ($shop->user_id) {
+                        try {
+                            \App\Models\Notification::create([
+                                'user_id' => $shop->user_id,
+                                'type'    => 'order_processing',
+                                'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
+                                'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
+                                'link'    => '/seller/orders',
+                                'icon'    => 'truck',
+                                'is_read' => false,
+                            ]);
+                        } catch (\Throwable $e) {}
+                    }
                 }
             } elseif (in_array($newStatus, ['completed', 'delivered'])) {
                 \App\Services\EmailService::sendOrderCompletedEmail($order);
@@ -200,23 +203,26 @@ class AdminOrderController extends Controller
             if (in_array($newStatus, ['confirmed', 'processing'])) {
                 \App\Services\EmailService::sendOrderConfirmationEmail($order);
 
-                // Notify Vendor Shop Owner
-                $shop = $order->shop;
-                if (!$shop && $order->items->isNotEmpty()) {
-                    $shop = $order->items->first()?->product?->shop;
+                // Notify Vendor Shop Owners
+                $vendorShopIds = $order->items->pluck('shop_id')->filter()->unique()->toArray();
+                if ($order->shop_id) {
+                    $vendorShopIds[] = $order->shop_id;
                 }
-                if ($shop && $shop->user_id && $shop->user_id != 1) {
-                    try {
-                        \App\Models\Notification::create([
-                            'user_id' => $shop->user_id,
-                            'type'    => 'order_processing',
-                            'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
-                            'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
-                            'link'    => '/seller/orders',
-                            'icon'    => 'truck',
-                            'is_read' => false,
-                        ]);
-                    } catch (\Throwable $e) {}
+                $shops = \App\Models\Shop::whereIn('id', array_unique($vendorShopIds))->get();
+                foreach ($shops as $shop) {
+                    if ($shop->user_id) {
+                        try {
+                            \App\Models\Notification::create([
+                                'user_id' => $shop->user_id,
+                                'type'    => 'order_processing',
+                                'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
+                                'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
+                                'link'    => '/seller/orders',
+                                'icon'    => 'truck',
+                                'is_read' => false,
+                            ]);
+                        } catch (\Throwable $e) {}
+                    }
                 }
             } elseif (in_array($newStatus, ['completed', 'delivered'])) {
                 \App\Services\EmailService::sendOrderCompletedEmail($order);
@@ -294,17 +300,23 @@ class AdminOrderController extends Controller
                 try {
                     if (in_array($newStatus, ['confirmed', 'processing'])) {
                         \App\Services\EmailService::sendOrderConfirmationEmail($order);
-                        $shop = $order->shop ?? $order->items->first()?->product?->shop;
-                        if ($shop && $shop->user_id && $shop->user_id != 1) {
-                            \App\Models\Notification::create([
-                                'user_id' => $shop->user_id,
-                                'type'    => 'order_processing',
-                                'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
-                                'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন।",
-                                'link'    => '/seller/orders',
-                                'icon'    => 'truck',
-                                'is_read' => false,
-                            ]);
+                        $vendorShopIds = $order->items->pluck('shop_id')->filter()->unique()->toArray();
+                        if ($order->shop_id) {
+                            $vendorShopIds[] = $order->shop_id;
+                        }
+                        $shops = \App\Models\Shop::whereIn('id', array_unique($vendorShopIds))->get();
+                        foreach ($shops as $shop) {
+                            if ($shop->user_id) {
+                                \App\Models\Notification::create([
+                                    'user_id' => $shop->user_id,
+                                    'type'    => 'order_processing',
+                                    'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
+                                    'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন কর্তৃক প্রসেসিং সম্পন্ন করা হয়েছে। ভেন্ডর প্যানেল থেকে ডেলিভারি পিকআপ রিকোয়েস্ট পাঠান।",
+                                    'link'    => '/seller/orders',
+                                    'icon'    => 'truck',
+                                    'is_read' => false,
+                                ]);
+                            }
                         }
                     } elseif (in_array($newStatus, ['completed', 'delivered'])) {
                         \App\Services\EmailService::sendOrderCompletedEmail($order);

@@ -33,19 +33,27 @@ class SellerDashboardController extends Controller
         }
 
         $wallet = SellerWallet::where('shop_id', $shop->id)->first();
-        $totalOrders = Order::where('shop_id', $shop->id)->count();
-        $pendingOrders = Order::where('shop_id', $shop->id)->where('status', 'pending')->count();
-        $deliveredOrders = Order::where('shop_id', $shop->id)->where('status', 'delivered')->count();
-        $cancelledOrders = Order::where('shop_id', $shop->id)->where('status', 'cancelled')->count();
-        $returnedOrders = Order::where('shop_id', $shop->id)->where('status', 'returned')->count();
-        $processingOrders = Order::where('shop_id', $shop->id)->where('status', 'processing')->count();
+        $wallet = SellerWallet::where('shop_id', $shop->id)->first();
+        $shopOrderQuery = Order::where(function($q) use ($shop) {
+            $q->where('shop_id', $shop->id)
+              ->orWhereHas('items', function($sub) use ($shop) {
+                  $sub->where('shop_id', $shop->id);
+              });
+        })->where('status', '!=', 'pending');
+
+        $totalOrders = (clone $shopOrderQuery)->count();
+        $deliveredOrders = (clone $shopOrderQuery)->where('status', 'delivered')->count();
+        $cancelledOrders = (clone $shopOrderQuery)->where('status', 'cancelled')->count();
+        $returnedOrders = (clone $shopOrderQuery)->where('status', 'returned')->count();
+        $processingOrders = (clone $shopOrderQuery)->where('status', 'processing')->count();
+        $pendingOrders = $processingOrders; // For seller, orders awaiting their action are processing orders!
         
-        $totalRevenue = Order::where('shop_id', $shop->id)
+        $totalRevenue = (clone $shopOrderQuery)
             ->whereIn('status', ['delivered', 'shipped'])
             ->sum('total');
         $totalProducts = Product::where('shop_id', $shop->id)->count();
 
-        $recentOrders = Order::where('shop_id', $shop->id)
+        $recentOrders = (clone $shopOrderQuery)
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get(['id', 'order_number', 'total', 'status', 'created_at', 'customer_name']);

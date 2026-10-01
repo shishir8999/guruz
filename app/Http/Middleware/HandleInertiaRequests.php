@@ -330,7 +330,12 @@ class HandleInertiaRequests extends Middleware
                 if ($shop) {
                     $sellerCounts = Cache::remember('seller_nav_counts_' . $shop->id, 15, function () use ($shop, $user) {
                         $sCounts = [];
-                        $sCounts['pending_orders'] = \App\Models\Order::where('shop_id', $shop->id)->whereIn('status', ['pending', 'processing'])->count();
+                        $sCounts['pending_orders'] = \App\Models\Order::where(function($q) use ($shop) {
+                            $q->where('shop_id', $shop->id)
+                              ->orWhereHas('items', function($sub) use ($shop) {
+                                  $sub->where('shop_id', $shop->id);
+                              });
+                        })->where('status', 'processing')->count();
                         $sCounts['pending_category_requests'] = \App\Models\CategoryRequest::where('shop_id', $shop->id)->where('status', 'pending')->count();
                         $sCounts['pending_pickup_requests'] = \App\Models\PickupRequest::where('shop_id', $shop->id)->where('status', 'pending')->count();
                         $sCounts['pending_bargain_offers'] = \App\Models\BargainOffer::where('shop_id', $shop->id)->where('status', 'pending')->count();
