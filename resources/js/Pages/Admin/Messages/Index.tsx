@@ -261,10 +261,10 @@ export default function Index({
         setData('body', text);
     };
 
-    const handleDeleteThread = (threadId: number) => {
+    const handleDeleteThread = (threadId: string | number) => {
         Swal.fire({
             title: 'চ্যাটটি সম্পূর্ণ মুছে ফেলতে চান?',
-            text: 'এই লাইভ চ্যাট থ্রেড ও এর সমস্ত মেসেজ ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হবে!',
+            text: 'এই চ্যাট থ্রেড ও এর সমস্ত মেসেজ ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হবে!',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
@@ -276,11 +276,81 @@ export default function Index({
                 router.delete('/admin/messages/thread/' + threadId, {
                     preserveScroll: true,
                     onSuccess: () => {
-                        Swal.fire('মুছে ফেলা হয়েছে!', 'চ্যাট ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হয়েছে।', 'success');
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: 'চ্যাট ডাটাবেস থেকে স্থায়ীভাবে ডিলিট হয়েছে।',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true,
+                        });
                     }
                 });
             }
         });
+    };
+
+    const handleDeleteUser = (userId: number, userName: string) => {
+        Swal.fire({
+            title: 'ইউজার স্থায়ীভাবে ডিলিট করবেন?',
+            html: `<div class="text-xs text-slate-600 space-y-2 text-left bg-slate-50 p-3 rounded-xl border border-slate-200"><p>আপনি কি নিশ্চিত যে ইউজার <b>${userName}</b> (ID: #${userId}) এবং তার সমস্ত রেকর্ড (মেসেজ, অর্ডার ইত্যাদি) সম্পূর্ণ ডাটাবেজ থেকে মুছে ফেলতে চান?</p><p class="text-rose-600 font-bold">⚠️ এই কাজটি আর কোনোভাবেই ফিরিয়ে আনা যাবে না!</p></div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'হ্যাঁ, ইউজার সম্পূর্ণ ডিলিট করুন',
+            cancelButtonText: 'বাতিল',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete('/admin/messages/user/' + userId, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: `ইউজার "${userName}" সফলভাবে মুছে ফেলা হয়েছে!`,
+                            showConfirmButton: false,
+                            timer: 2500,
+                            timerProgressBar: true,
+                        });
+                    },
+                    onError: () => {
+                        Swal.fire('ব্যর্থ!', 'ইউজার ডিলিট করা সম্ভব হয়নি।', 'error');
+                    }
+                });
+            }
+        });
+    };
+
+    const handlePromptDelete = (customer: CustomerItem) => {
+        if (customer.is_live_thread && customer.thread_id) {
+            handleDeleteThread('live_' + customer.thread_id);
+            return;
+        }
+
+        if (customer.user_id) {
+            Swal.fire({
+                title: `${customer.name}`,
+                html: `<div class="text-xs text-slate-600 py-1">আপনি কি এই ইউজারের চ্যাট হিস্ট্রি মুছবেন নাকি ইউজার অ্যাকাউন্টটিই সম্পূর্ণ ডিলিট করবেন?</div>`,
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                denyButtonColor: '#d97706',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '🗑️ ইউজার অ্যাকাউন্ট সম্পূর্ণ ডিলিট',
+                denyButtonText: '💬 শুধুমাত্র চ্যাট মুছুন',
+                cancelButtonText: 'বাতিল',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    handleDeleteUser(customer.user_id!, customer.name);
+                } else if (result.isDenied) {
+                    handleDeleteThread('user_' + customer.user_id);
+                }
+            });
+        }
     };
 
     const handleDeleteMessage = (msgId: number, isLive: boolean) => {
@@ -461,6 +531,21 @@ export default function Index({
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Quick Delete Button for each user/session */}
+                                            <div className="shrink-0 flex items-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handlePromptDelete(customer);
+                                                    }}
+                                                    className="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                                    title={customer.is_live_thread ? 'লাইভ চ্যাট মুছুন' : 'ইউজার বা চ্যাট মুছুন'}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })
@@ -498,19 +583,40 @@ export default function Index({
                                         </div>
                                     </div>
 
-                                    {/* Action Buttons: Delete Thread */}
+                                    {/* Action Buttons: Delete Thread / Delete User */}
                                     <div className="flex items-center gap-2">
-                                        {active_user.is_live_thread && active_user.thread_id && (
+                                        {active_user.is_live_thread && active_user.thread_id ? (
                                             <button
                                                 type="button"
-                                                onClick={() => handleDeleteThread(active_user.thread_id!)}
+                                                onClick={() => handleDeleteThread('live_' + active_user.thread_id)}
                                                 className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-rose-200 cursor-pointer"
                                                 title="সম্পূর্ণ চ্যাট মুছে ফেলুন"
                                             >
                                                 <Trash2 size={13} />
                                                 <span>সম্পূর্ণ চ্যাট মুছুন</span>
                                             </button>
-                                        )}
+                                        ) : active_user.user_id ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteThread('user_' + active_user.user_id)}
+                                                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-amber-200 cursor-pointer"
+                                                    title="এই ইউজারের সমস্ত মেসেজ হিস্ট্রি মুছুন"
+                                                >
+                                                    <MessageSquare size={13} />
+                                                    <span>চ্যাট মুছুন</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteUser(active_user.user_id!, active_user.name)}
+                                                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-rose-200 cursor-pointer"
+                                                    title="এই ইউজার অ্যাকাউন্ট স্থায়ীভাবে ডাটাবেজ থেকে ডিলিট করুন"
+                                                >
+                                                    <Trash2 size={13} />
+                                                    <span>ইউজার ডিলিট</span>
+                                                </button>
+                                            </>
+                                        ) : null}
                                         <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 flex items-center gap-1">
                                             <ShieldCheck size={14} className="text-emerald-600" /> Live
                                         </span>

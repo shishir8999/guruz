@@ -1092,6 +1092,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/messages', [\App\Http\Controllers\Admin\AdminMessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [\App\Http\Controllers\Admin\AdminMessageController::class, 'store'])->name('messages.store');
     Route::delete('/messages/thread/{id}', [\App\Http\Controllers\Admin\AdminMessageController::class, 'deleteThread'])->name('messages.thread.destroy');
+    Route::delete('/messages/user/{id}', [\App\Http\Controllers\Admin\AdminMessageController::class, 'deleteUser'])->name('messages.user.destroy');
     Route::delete('/messages/message/{id}', [\App\Http\Controllers\Admin\AdminMessageController::class, 'deleteMessage'])->name('messages.message.destroy');
 
     // Dynamic Admin Fallback for 100% functional sub-menu coverage

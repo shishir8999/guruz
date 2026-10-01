@@ -308,23 +308,97 @@ class AdminMessageController extends Controller
     }
 
     /**
-     * Delete an entire chat conversation thread permanently
+     * Delete an entire chat conversation thread or registered user's chat permanently
      */
     public function deleteThread(Request $request, $id)
     {
-        $thread = LiveChatThread::find($id);
+        $type = $request->query('type') ?? $request->input('type');
+
+        // If explicitly a user chat or starts with 'user_'
+        if ($type === 'user' || str_starts_with((string)$id, 'user_')) {
+            $userId = str_replace('user_', '', $id);
+            Message::where(function ($q) use ($userId) {
+                $q->where('sender_id', $userId)->orWhere('receiver_id', $userId);
+            })->delete();
+
+            // Also remove any live threads for this user if any
+            $threads = LiveChatThread::where('user_id', $userId)->get();
+            foreach ($threads as $t) {
+                $t->messages()->delete();
+                $t->delete();
+            }
+
+            Cache::forget('admin_nav_counts');
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'কাস্টমারের সমস্ত চ্যাট সফলভাবে মুছে ফেলা হয়েছে।']);
+            }
+            return redirect()->route('admin.messages.index')->with('success', 'কাস্টমারের সমস্ত চ্যাট সফলভাবে মুছে ফেলা হয়েছে।');
+        }
+
+        // Live Chat Thread
+        $threadId = str_replace('live_', '', $id);
+        $thread = LiveChatThread::find($threadId);
         if ($thread) {
             $userId = $thread->user_id;
             $thread->messages()->delete();
             $thread->delete();
             if ($userId) {
-                // Also clean up any unread messages from this user in direct messages
-                Message::where('sender_id', $userId)->delete();
+                Message::where(function ($q) use ($userId) {
+                    $q->where('sender_id', $userId)->orWhere('receiver_id', $userId);
+                })->delete();
+            }
+
+            Cache::forget('admin_nav_counts');
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'message' => 'লাইভ চ্যাট সম্পূর্ণ স্থায়ীভাবে মুছে ফেলা হয়েছে।']);
             }
             return redirect()->route('admin.messages.index')->with('success', 'লাইভ চ্যাট সম্পূর্ণ স্থায়ীভাবে মুছে ফেলা হয়েছে।');
         }
 
+        // Fallback: check if $id is actually a user ID in case type was not sent
+        $user = User::find($id);
+        if ($user) {
+            Message::where(function ($q) use ($id) {
+                $q->where('sender_id', $id)->orWhere('receiver_id', $id);
+            })->delete();
+
+            Cache::forget('admin_nav_counts');
+
+            return redirect()->route('admin.messages.index')->with('success', 'কাস্টমারের সমস্ত চ্যাট সফলভাবে মুছে ফেলা হয়েছে।');
+        }
+
         return back()->with('error', 'চ্যাট পাওয়া যায়নি।');
+    }
+
+    /**
+     * Permanently delete a user account directly from Live Messenger
+     */
+    public function deleteUser(Request $request, $id)
+    {
+        $userId = (int) str_replace('user_', '', $id);
+        $user = User::find($userId);
+        if (!$user) {
+            return back()->with('error', 'ইউজার পাওয়া যায়নি।');
+        }
+
+        if ($user->isAdmin()) {
+            return back()->with('error', 'অ্যাডমিন অ্যাকাউন্ট ডিলিট করা যাবে না।');
+        }
+
+        $userName = $user->name;
+        \App\Http\Controllers\Admin\AdminDashboardController::forceDeleteUserFromSystem($userId);
+
+        Cache::forget('admin_nav_counts');
+
+        $message = "ইউজার '{$userName}' এবং তার সমস্ত তথ্য সফলভাবে ডাটাবেজ থেকে মুছে ফেলা হয়েছে!";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+
+        return redirect()->route('admin.messages.index')->with('success', $message);
     }
 
     /**
