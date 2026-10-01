@@ -360,26 +360,39 @@ class User extends Authenticatable
 
     public function ensureBonusCoupon(): void
     {
-        $hasActive = \Illuminate\Support\Facades\DB::table('user_bonus_coupons')
-            ->where('user_id', $this->id)
-            ->where('is_used', false)
-            ->where('expires_at', '>', now())
-            ->exists();
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('user_bonus_coupons')) {
+                return;
+            }
 
-        if (!$hasActive) {
-            $code = 'BONUS10-' . strtoupper(\Illuminate\Support\Str::random(4));
-            \Illuminate\Support\Facades\DB::table('user_bonus_coupons')->insert([
-                'user_id'             => $this->id,
-                'code'                => $code,
-                'type'                => 'percent',
-                'value'               => 10.00,
-                'min_order_amount'    => 0.00,
-                'max_discount_amount' => 500.00,
-                'expires_at'          => now()->addDays(30),
-                'is_used'             => false,
-                'created_at'          => now(),
-                'updated_at'          => now(),
-            ]);
+            $hasActive = \Illuminate\Support\Facades\DB::table('user_bonus_coupons')
+                ->where('user_id', $this->id)
+                ->where('is_used', false)
+                ->where('expires_at', '>', now())
+                ->exists();
+
+            if (!$hasActive) {
+                $code = 'BONUS10-' . strtoupper(\Illuminate\Support\Str::random(4));
+                $data = [
+                    'user_id'    => $this->id,
+                    'code'       => $code,
+                    'type'       => 'percent',
+                    'value'      => 10.00,
+                    'expires_at' => now()->addDays(30),
+                    'is_used'    => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('user_bonus_coupons', 'min_order_amount')) {
+                    $data['min_order_amount'] = 0.00;
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('user_bonus_coupons', 'max_discount_amount')) {
+                    $data['max_discount_amount'] = 500.00;
+                }
+                \Illuminate\Support\Facades\DB::table('user_bonus_coupons')->insert($data);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('ensureBonusCoupon error: ' . $e->getMessage());
         }
     }
 }

@@ -183,17 +183,9 @@ export default function CustomerManagement({ customers, counts, filters, bonus_c
         setCouponStatuses(prev => ({ ...prev, [userId]: newVal }));
 
         try {
-            const response = await fetch(`/admin/customers/${userId}/toggle-bonus-coupon`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                },
-                body: JSON.stringify({ enabled: newVal }),
-            });
+            const res = await axios.post(`/admin/customers/${userId}/toggle-bonus-coupon`, { enabled: newVal });
 
-            if (response.ok) {
+            if (res.data && res.data.success) {
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -205,11 +197,11 @@ export default function CustomerManagement({ customers, counts, filters, bonus_c
                 });
             } else {
                 setCouponStatuses(prev => ({ ...prev, [userId]: currentVal }));
-                Swal.fire('Error', 'কুপন স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।', 'error');
+                Swal.fire('Error', res.data?.message || 'কুপন স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।', 'error');
             }
-        } catch (err) {
+        } catch (err: any) {
             setCouponStatuses(prev => ({ ...prev, [userId]: currentVal }));
-            Swal.fire('Error', 'সার্ভারে সংযোগ করতে ব্যর্থ হয়েছে।', 'error');
+            Swal.fire('Error', err?.response?.data?.message || 'কুপন স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।', 'error');
         }
     };
 
@@ -237,17 +229,9 @@ export default function CustomerManagement({ customers, counts, filters, bonus_c
                 });
 
                 try {
-                    const response = await fetch('/admin/customers/bulk-bonus-coupon', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
-                        },
-                        body: JSON.stringify({ enabled: enableAll }),
-                    });
+                    const res = await axios.post('/admin/customers/bulk-bonus-coupon', { enabled: enableAll });
 
-                    if (response.ok) {
+                    if (res.data && res.data.success) {
                         Swal.fire({
                             icon: 'success',
                             title: enableAll ? 'সব কুপন চালু সফল!' : 'সব কুপন বন্ধ সফল!',
@@ -260,6 +244,7 @@ export default function CustomerManagement({ customers, counts, filters, bonus_c
                     }
                 } catch (err) {
                     router.reload();
+                    Swal.fire('Error', 'সকল কুপন পরিবর্তন করতে সমস্যা হয়েছে।', 'error');
                 }
             }
         });

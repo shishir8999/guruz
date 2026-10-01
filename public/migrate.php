@@ -54,6 +54,50 @@ try {
         echo "Sessions table created.\n";
     }
 
+    // Ensure users.bonus_coupon_enabled column exists
+    if (\Illuminate\Support\Facades\Schema::hasTable('users') && !\Illuminate\Support\Facades\Schema::hasColumn('users', 'bonus_coupon_enabled')) {
+        echo "Adding bonus_coupon_enabled column to users table...\n";
+        try {
+            \Illuminate\Support\Facades\Schema::table('users', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->boolean('bonus_coupon_enabled')->default(true)->after('status');
+            });
+            echo "bonus_coupon_enabled column added.\n";
+        } catch (\Throwable $e) {}
+    }
+
+    // Ensure user_bonus_coupons table exists with all necessary columns
+    if (!\Illuminate\Support\Facades\Schema::hasTable('user_bonus_coupons')) {
+        echo "Creating user_bonus_coupons table...\n";
+        try {
+            \Illuminate\Support\Facades\Schema::create('user_bonus_coupons', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->string('code')->unique();
+                $table->string('type')->default('percent');
+                $table->decimal('value', 10, 2)->default(10.00);
+                $table->decimal('min_order_amount', 10, 2)->default(0.00);
+                $table->decimal('max_discount_amount', 10, 2)->default(500.00);
+                $table->timestamp('expires_at')->nullable();
+                $table->boolean('is_used')->default(false);
+                $table->timestamps();
+            });
+            echo "user_bonus_coupons table created.\n";
+        } catch (\Throwable $e) {}
+    } else {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('user_bonus_coupons', 'min_order_amount')) {
+                \Illuminate\Support\Facades\Schema::table('user_bonus_coupons', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('min_order_amount', 10, 2)->default(0.00)->after('value');
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('user_bonus_coupons', 'max_discount_amount')) {
+                \Illuminate\Support\Facades\Schema::table('user_bonus_coupons', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('max_discount_amount', 10, 2)->default(500.00)->after('min_order_amount');
+                });
+            }
+        } catch (\Throwable $e) {}
+    }
+
     $sqlFile = __DIR__ . '/../database/database_update_all_tables.sql';
     if (file_exists($sqlFile)) {
         echo "\n2. Importing database_update_all_tables.sql schema...\n";

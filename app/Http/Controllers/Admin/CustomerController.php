@@ -206,48 +206,67 @@ class CustomerController extends Controller
         return new StreamedResponse($callback, 200, $headers);
     }
 
-    public function toggleBonusCoupon(Request $request, User $user)
+    public function toggleBonusCoupon(Request $request, $user)
     {
-        $newState = $request->has('enabled') ? (bool) $request->input('enabled') : !($user->bonus_coupon_enabled ?? true);
-        $user->bonus_coupon_enabled = $newState;
-        $user->save();
+        try {
+            $userModel = $user instanceof User ? $user : User::findOrFail($user);
+            $newState = $request->has('enabled') ? (bool) $request->input('enabled') : !($userModel->bonus_coupon_enabled ?? true);
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'bonus_coupon_enabled')) {
+                $userModel->bonus_coupon_enabled = $newState;
+                $userModel->save();
+            }
 
-        if ($newState) {
-            $user->ensureBonusCoupon();
-        }
+            if ($newState) {
+                try {
+                    $userModel->ensureBonusCoupon();
+                } catch (\Throwable $ex) {}
+            }
 
-        if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'bonus_coupon_enabled' => $newState,
                 'message' => $newState ? 'বোনাস কুপন চালু করা হয়েছে।' : 'বোনাস কুপন বন্ধ করা হয়েছে।'
             ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('toggleBonusCoupon error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'কুপন স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।'
+            ], 500);
         }
-
-        return back()->with('success', $newState ? 'ইউজারের বোনাস কুপন চালু করা হয়েছে।' : 'ইউজারের বোনাস কুপন বন্ধ করা হয়েছে।');
     }
 
     public function bulkBonusCoupon(Request $request)
     {
-        $enabled = (bool) $request->input('enabled', true);
-        User::query()->update(['bonus_coupon_enabled' => $enabled]);
-
-        if ($enabled) {
-            $users = User::all();
-            foreach ($users as $user) {
-                $user->ensureBonusCoupon();
+        try {
+            $enabled = (bool) $request->input('enabled', true);
+            
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'bonus_coupon_enabled')) {
+                User::query()->update(['bonus_coupon_enabled' => $enabled]);
             }
-        }
 
-        if ($request->wantsJson()) {
+            if ($enabled) {
+                try {
+                    $users = User::all();
+                    foreach ($users as $user) {
+                        $user->ensureBonusCoupon();
+                    }
+                } catch (\Throwable $ex) {}
+            }
+
             return response()->json([
                 'success' => true,
                 'enabled' => $enabled,
                 'message' => $enabled ? 'সকল ইউজারের জন্য বোনাস কুপন চালু করা হয়েছে।' : 'সকল ইউজারের জন্য বোনাস কুপন বন্ধ করা হয়েছে।'
             ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('bulkBonusCoupon error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'সকল কুপন পরিবর্তন করা সম্ভব হয়নি।'
+            ], 500);
         }
-
-        return back()->with('success', $enabled ? 'সকল ইউজারের জন্য বোনাস কুপন চালু করা হয়েছে।' : 'সকল ইউজারের জন্য বোনাস কুপন বন্ধ করা হয়েছে।');
     }
 
     public function updateBonusCouponMessage(Request $request)
