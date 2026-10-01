@@ -235,59 +235,65 @@ class DatabaseSeeder extends Seeder
         }
 
         // 6. Seed CMS Pages
-        \Illuminate\Support\Facades\DB::table('cms_pages')->insert([
-            ['title' => 'About Us', 'slug' => 'about-us', 'content' => json_encode(['html' => '<p>Welcome to Guruz BD</p>']), 'is_published' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['title' => 'Privacy Policy', 'slug' => 'privacy-policy', 'content' => json_encode(['html' => '<p>Privacy matters</p>']), 'is_published' => true, 'created_at' => now(), 'updated_at' => now()],
-            ['title' => 'Terms & Conditions', 'slug' => 'terms-and-conditions', 'content' => json_encode(['html' => '<p>Terms of service</p>']), 'is_published' => false, 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        if (\Illuminate\Support\Facades\DB::table('cms_pages')->count() === 0) {
+            \Illuminate\Support\Facades\DB::table('cms_pages')->insert([
+                ['title' => 'About Us', 'slug' => 'about-us', 'content' => json_encode(['html' => '<p>Welcome to Guruz BD</p>']), 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+                ['title' => 'Privacy Policy', 'slug' => 'privacy-policy', 'content' => json_encode(['html' => '<p>Privacy matters</p>']), 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
+                ['title' => 'Terms & Conditions', 'slug' => 'terms-and-conditions', 'content' => json_encode(['html' => '<p>Terms of service</p>']), 'is_active' => false, 'created_at' => now(), 'updated_at' => now()],
+            ]);
+        }
 
         // 7. Seed Blog Data
-        $blogCatId = \Illuminate\Support\Facades\DB::table('blog_categories')->insertGetId([
-            'name' => 'Technology', 'slug' => 'technology', 'created_at' => now(), 'updated_at' => now()
-        ]);
-        \Illuminate\Support\Facades\DB::table('blog_categories')->insert([
-            ['name' => 'Guides', 'slug' => 'guides', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Announcements', 'slug' => 'announcements', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        if (\Illuminate\Support\Facades\DB::table('blog_categories')->count() === 0) {
+            $blogCatId = \Illuminate\Support\Facades\DB::table('blog_categories')->insertGetId([
+                'name' => 'Technology', 'slug' => 'technology', 'created_at' => now(), 'updated_at' => now()
+            ]);
+            \Illuminate\Support\Facades\DB::table('blog_categories')->insert([
+                ['name' => 'Guides', 'slug' => 'guides', 'created_at' => now(), 'updated_at' => now()],
+                ['name' => 'Announcements', 'slug' => 'announcements', 'created_at' => now(), 'updated_at' => now()],
+            ]);
 
-        $postId = \Illuminate\Support\Facades\DB::table('blog_posts')->insertGetId([
-            'title' => 'Top 10 Gadgets of 2026', 'slug' => 'top-10-gadgets-2026', 'category_id' => $blogCatId,
-            'author_id' => $admin->id, 'content' => 'Lorem ipsum...', 'is_published' => true, 'created_at' => now(), 'updated_at' => now()
-        ]);
+            $postId = \Illuminate\Support\Facades\DB::table('blog_posts')->insertGetId([
+                'title' => 'Top 10 Gadgets of 2026', 'slug' => 'top-10-gadgets-2026', 'category_id' => $blogCatId,
+                'author_id' => $admin->id, 'content' => 'Lorem ipsum...', 'is_published' => true, 'created_at' => now(), 'updated_at' => now()
+            ]);
 
-        \Illuminate\Support\Facades\DB::table('blog_comments')->insert([
-            ['post_id' => $postId, 'user_id' => $customer->id, 'author_name' => $customer->name, 'body' => 'Great list!', 'is_approved' => true, 'created_at' => now(), 'updated_at' => now()]
-        ]);
+            \Illuminate\Support\Facades\DB::table('blog_comments')->insert([
+                ['post_id' => $postId, 'user_id' => $customer->id, 'author_name' => $customer->name, 'body' => 'Great list!', 'is_approved' => true, 'created_at' => now(), 'updated_at' => now()]
+            ]);
 
-        \Illuminate\Support\Facades\DB::table('blog_tags')->insert([
-            ['name' => 'Smartphone', 'slug' => 'smartphone', 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Laptop', 'slug' => 'laptop', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+            \Illuminate\Support\Facades\DB::table('blog_tags')->insert([
+                ['name' => 'Smartphone', 'slug' => 'smartphone', 'created_at' => now(), 'updated_at' => now()],
+                ['name' => 'Laptop', 'slug' => 'laptop', 'created_at' => now(), 'updated_at' => now()],
+            ]);
+        }
 
         // 8. Seed Dummy Orders
-        $order = \App\Models\Order::create([
-            'user_id' => $customer->id,
-            'order_number' => 'ORD-10001',
-            'status' => 'pending',
-            'payment_status' => 'unpaid',
-            'subtotal' => 1450.00,
-            'total' => 1450.00,
-            'shipping_fee' => 60.00,
-            'payment_method' => 'cod',
-            'shipping_address' => 'Dhaka, Bangladesh',
-            'customer_name' => $customer->name,
-            'customer_email' => $customer->email,
-            'customer_phone' => $customer->phone,
-            'city' => 'Dhaka',
-        ]);
+        if (\App\Models\Order::count() === 0) {
+            $order = \App\Models\Order::create([
+                'user_id' => $customer->id,
+                'order_number' => 'ORD-10001',
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+                'subtotal' => 1450.00,
+                'total' => 1450.00,
+                'shipping_fee' => 60.00,
+                'payment_method' => 'cod',
+                'shipping_address' => 'Dhaka, Bangladesh',
+                'customer_name' => $customer->name,
+                'customer_email' => $customer->email,
+                'customer_phone' => $customer->phone,
+                'city' => 'Dhaka',
+            ]);
 
-        \App\Models\OrderItem::create([
-            'order_id' => $order->id,
-            'product_id' => 1,
-            'product_name' => 'UGREEN CR113 4-in-1 USB 3.0 Hub',
-            'quantity' => 1,
-            'price' => 1450.00,
-            'subtotal' => 1450.00,
-        ]);
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => 1,
+                'product_name' => 'UGREEN CR113 4-in-1 USB 3.0 Hub',
+                'quantity' => 1,
+                'price' => 1450.00,
+                'subtotal' => 1450.00,
+            ]);
+        }
     }
 }
