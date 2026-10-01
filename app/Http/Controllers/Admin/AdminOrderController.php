@@ -268,6 +268,90 @@ class AdminOrderController extends Controller
         return back()->with('success', "Order {$number} deleted.");
     }
 
+    public function bulkStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:orders,id',
+            'status' => 'required|string',
+        ]);
+
+        $newStatus = strtolower($validated['status']);
+        $orders = Order::whereIn('id', $validated['ids'])->get();
+
+        $count = 0;
+        foreach ($orders as $order) {
+            $oldStatus = strtolower($order->status ?? '');
+            $order->status = $newStatus;
+            if (!$order->admin_seen_at) {
+                $order->admin_seen_at = now();
+            }
+            $order->save();
+            $count++;
+
+            // Email & Cashback / Commission / Vendor notification if status changed
+            if ($oldStatus !== $newStatus) {
+                try {
+                    if (in_array($newStatus, ['confirmed', 'processing'])) {
+                        \App\Services\EmailService::sendOrderConfirmationEmail($order);
+                        $shop = $order->shop ?? $order->items->first()?->product?->shop;
+                        if ($shop && $shop->user_id && $shop->user_id != 1) {
+                            \App\Models\Notification::create([
+                                'user_id' => $shop->user_id,
+                                'type'    => 'order_processing',
+                                'title'   => '📦 অর্ডার প্রসেসিং হিসেবে অনুমোদিত!',
+                                'body'    => "অর্ডার #{$order->order_number} সুপার অ্যাডমিন প্রসেসিং সম্পন্ন করেছেন।",
+                                'link'    => '/seller/orders',
+                                'icon'    => 'truck',
+                                'is_read' => false,
+                            ]);
+                        }
+                    } elseif (in_array($newStatus, ['completed', 'delivered'])) {
+                        \App\Services\EmailService::sendOrderCompletedEmail($order);
+                        Order::awardOrderCompletionCashback($order);
+                        CommissionService::processOrderSettlement($order);
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
+
+        $displayStatus = ucfirst($newStatus);
+        $message = "সফলভাবে {$count} টি অর্ডারের স্ট্যাটাস '{$displayStatus}' করা হয়েছে!";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message, 'count' => $count]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        $ids = $validated['ids'];
+        try {
+            \App\Models\OrderItem::whereIn('order_id', $ids)->delete();
+        } catch (\Throwable $e) {}
+
+        $count = Order::whereIn('id', $ids)->delete();
+
+        \Illuminate\Support\Facades\Cache::forget('admin_nav_counts');
+
+        $message = "সফলভাবে {$count} টি অর্ডার মুছে ফেলা হয়েছে!";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $message, 'count' => $count]);
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function sendInvoiceEmail($id)
     {
         $order = Order::findOrFail($id);

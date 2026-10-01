@@ -76,9 +76,17 @@ export default function OrdersPage({
         status: 'Pending' as OrderItem['status'],
     });
     const [expandedOrders, setExpandedOrders] = useState<Record<number, boolean>>({});
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isBulkOperating, setIsBulkOperating] = useState<boolean>(false);
 
     const toggleExpand = (id: number) => {
         setExpandedOrders(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleSelectOrder = (id: number) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+        );
     };
 
     useEffect(() => {
@@ -211,6 +219,7 @@ ${pdfDownloadUrl}
                 const targetOrder = orders.find(o => o.id === id);
                 // Instant Optimistic UI deletion
                 setOrders(prev => prev.filter(o => o.id !== id));
+                setSelectedIds(prev => prev.filter(item => item !== id));
 
                 if (targetOrder) {
                     setStatusCounts(prev => ({
@@ -236,6 +245,122 @@ ${pdfDownloadUrl}
                 }
             }
         });
+    };
+
+    const isAllFilteredSelected = filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.includes(o.id));
+    const isSomeFilteredSelected = filteredOrders.some(o => selectedIds.includes(o.id)) && !isAllFilteredSelected;
+
+    const handleToggleSelectAll = () => {
+        if (isAllFilteredSelected) {
+            const filteredIdSet = new Set(filteredOrders.map(o => o.id));
+            setSelectedIds(prev => prev.filter(id => !filteredIdSet.has(id)));
+        } else {
+            const combined = new Set([...selectedIds, ...filteredOrders.map(o => o.id)]);
+            setSelectedIds(Array.from(combined));
+        }
+    };
+
+    const handleBulkStatusChange = async (newStatus: OrderItem['status']) => {
+        if (selectedIds.length === 0 || !newStatus) return;
+
+        const count = selectedIds.length;
+        const result = await Swal.fire({
+            title: 'স্ট্যাটাস পরিবর্তন নিশ্চিতকরণ',
+            text: `আপনি কি নিশ্চিত যে নির্বাচিত ${count} টি অর্ডারের স্ট্যাটাস পরিবর্তন করে "${newStatus}" করতে চান?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#7c3aed',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'হ্যাঁ, পরিবর্তন করুন',
+            cancelButtonText: 'বাতিল',
+        });
+
+        if (!result.isConfirmed) return;
+
+        setIsBulkOperating(true);
+        const currentSelected = [...selectedIds];
+
+        // Optimistic UI update
+        setOrders(prev => prev.map(o => currentSelected.includes(o.id) ? { ...o, status: newStatus } : o));
+
+        try {
+            const res = await axios.post('/admin/orders/bulk-status', {
+                ids: currentSelected,
+                status: newStatus
+            });
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: res.data?.message || `${count} টি অর্ডারের স্ট্যাটাস সফলভাবে আপডেট হয়েছে!`,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true,
+            });
+            setSelectedIds([]);
+            router.reload({ preserveScroll: true });
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'ব্যর্থ হয়েছে',
+                text: err?.response?.data?.message || 'স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।',
+            });
+            router.reload({ preserveScroll: true });
+        } finally {
+            setIsBulkOperating(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        const count = selectedIds.length;
+        const result = await Swal.fire({
+            title: 'অর্ডার মুছে ফেলবেন?',
+            text: `আপনি কি নিশ্চিত যে নির্বাচিত ${count} টি অর্ডার একবারে মুছে ফেলতে চান? এটি পুনরুদ্ধার করা যাবে না!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: `হ্যাঁ, ডিলিট করুন (${count})`,
+            cancelButtonText: 'বাতিল',
+        });
+
+        if (!result.isConfirmed) return;
+
+        setIsBulkOperating(true);
+        const currentSelected = [...selectedIds];
+
+        // Optimistic UI update
+        setOrders(prev => prev.filter(o => !currentSelected.includes(o.id)));
+        setSelectedIds([]);
+
+        try {
+            const res = await axios.post('/admin/orders/bulk-delete', {
+                ids: currentSelected
+            });
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: res.data?.message || `${count} টি অর্ডার মুছে ফেলা হয়েছে!`,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true,
+            });
+            router.reload({ preserveScroll: true });
+        } catch (err: any) {
+            Swal.fire({
+                icon: 'error',
+                title: 'ব্যর্থ হয়েছে',
+                text: err?.response?.data?.message || 'অর্ডার মুছে ফেলা সম্ভব হয়নি।',
+            });
+            router.reload({ preserveScroll: true });
+        } finally {
+            setIsBulkOperating(false);
+        }
     };
 
     const openEdit = (o: OrderItem) => {
@@ -385,6 +510,88 @@ ${pdfDownloadUrl}
                     </div>
                 </div>
 
+                {/* Bulk Selection Bar */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-purple-600 transition">
+                            <input
+                                type="checkbox"
+                                checked={isAllFilteredSelected}
+                                ref={el => {
+                                    if (el) {
+                                        el.indeterminate = isSomeFilteredSelected;
+                                    }
+                                }}
+                                onChange={handleToggleSelectAll}
+                                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 dark:border-slate-600 cursor-pointer transition"
+                            />
+                            <span>সব সিলেক্ট করুন</span>
+                        </label>
+
+                        {selectedIds.length > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                                {selectedIds.length} টি সিলেক্টেড
+                            </span>
+                        )}
+                    </div>
+
+                    {selectedIds.length > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* Bulk Status Select */}
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 hidden sm:inline">স্ট্যাটাস পরিবর্তন:</span>
+                                <select
+                                    disabled={isBulkOperating}
+                                    onChange={(e) => {
+                                        const val = e.target.value as OrderItem['status'];
+                                        if (val) {
+                                            handleBulkStatusChange(val);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                    defaultValue=""
+                                    className="border border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-100 font-bold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer transition"
+                                >
+                                    <option value="" disabled>স্ট্যাটাস নির্বাচন করুন...</option>
+                                    <option value="Pending">● Pending (অপেক্ষমান)</option>
+                                    <option value="Processing">● Processing (প্রসেসিং)</option>
+                                    <option value="Shipped">● Shipped (শিপিং)</option>
+                                    <option value="Delivered">● Delivered (ডেলিভার্ড)</option>
+                                    <option value="Cancelled">● Cancelled (বাতিল)</option>
+                                </select>
+                            </div>
+
+                            {/* Bulk Delete Button */}
+                            <button
+                                type="button"
+                                disabled={isBulkOperating}
+                                onClick={handleBulkDelete}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 transition cursor-pointer shadow-xs disabled:opacity-50"
+                                title="সিলেক্ট করা সব অর্ডার মুছে ফেলুন"
+                            >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                                <span>একবারে ডিলিট ({selectedIds.length})</span>
+                            </button>
+
+                            {/* Deselect All */}
+                            <button
+                                type="button"
+                                disabled={isBulkOperating}
+                                onClick={() => setSelectedIds([])}
+                                className="p-1.5 rounded-xl text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                                title="সিলেকশন বাতিল করুন"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">
+                            অর্ডার সিলেক্ট করে একসাথে স্ট্যাটাস পরিবর্তন বা একবারে ডিলিট করুন
+                        </span>
+                    )}
+                </div>
+
                 {/* Orders List Container */}
                 <div className="space-y-3 notranslate" translate="no">
                     {filteredOrders.length === 0 ? (
@@ -395,6 +602,7 @@ ${pdfDownloadUrl}
                         filteredOrders.map(o => {
                             const isUnseen = Boolean(o.is_unseen);
                             const isPending = o.status === 'Pending';
+                            const isSelected = selectedIds.includes(o.id);
 
                             const getStatusSelectClass = (status: OrderItem['status']) => {
                                 switch (status) {
@@ -419,7 +627,9 @@ ${pdfDownloadUrl}
                                 <div
                                     key={o.id}
                                     className={`rounded-2xl shadow-xs transition-all duration-300 border-2 border-l-4 overflow-hidden ${
-                                        isUnseen
+                                        isSelected
+                                            ? 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-400 dark:border-purple-600 border-l-purple-600 ring-2 ring-purple-400/40 shadow-purple-100/50'
+                                            : isUnseen
                                             ? 'bg-emerald-50/90 border-emerald-400 dark:border-emerald-700/80 border-l-emerald-500 ring-2 ring-emerald-400/25 shadow-emerald-100/50'
                                             : isPending
                                             ? 'bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900 border-l-emerald-400'
@@ -428,8 +638,18 @@ ${pdfDownloadUrl}
                                 >
                                     {/* Main Row */}
                                     <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        {/* Left Section: Order Number & Customer Meta */}
-                                        <div className="flex items-start gap-3">
+                                        {/* Left Section: Selection Checkbox + Expand + Order Number & Customer Meta */}
+                                        <div className="flex items-start gap-2.5">
+                                            {/* Selection Checkbox */}
+                                            <div className="pt-1.5" onClick={e => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelectOrder(o.id)}
+                                                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 dark:border-slate-600 cursor-pointer transition hover:scale-110"
+                                                />
+                                            </div>
+
                                             <button
                                                 type="button"
                                                 onClick={() => toggleExpand(o.id)}

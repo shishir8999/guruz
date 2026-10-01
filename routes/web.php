@@ -858,6 +858,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Order Management
     Route::get('/orders', [\App\Http\Controllers\Admin\AdminOrderController::class, 'index'])->name('orders');
     Route::post('/orders/mark-all-seen', [\App\Http\Controllers\Admin\AdminOrderController::class, 'markAllSeen'])->name('admin.orders.mark-all-seen');
+    Route::post('/orders/bulk-status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'bulkStatus'])->name('admin.orders.bulk-status');
+    Route::post('/orders/bulk-delete', [\App\Http\Controllers\Admin\AdminOrderController::class, 'bulkDelete'])->name('admin.orders.bulk-delete');
     Route::post('/orders/{id}/mark-seen', [\App\Http\Controllers\Admin\AdminOrderController::class, 'markSeen'])->name('admin.orders.mark-seen');
     Route::post('/orders/{id}', [\App\Http\Controllers\Admin\AdminOrderController::class, 'update'])->name('admin.orders.update');
     Route::post('/orders/{id}/status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus'])->name('orders.update-status');
