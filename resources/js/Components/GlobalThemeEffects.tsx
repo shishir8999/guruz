@@ -297,16 +297,34 @@ export function useParticleEffect(
             };
         }
 
-        // Downward Drifting Petals, Leaves, Flowers, Snow, Confetti
+        // ❄️ REALISTIC GENTLE FALLING SNOW (Snow / Sheet / Poush / Magh)
+        if (lowerType === 'snow' || lowerType === 'sheet' || lowerType === 'poush' || lowerType === 'magh') {
+            const snowEmojis = EMOJIS.Snow || ['❄️', '🌨️', '⛄'];
+            const isEmoji = Math.random() > 0.45; // 55% emojis, 45% delicate snow crystal dots
+            return { ...base,
+                x: Math.random() * canvas.width,
+                y: -20,
+                vx: (Math.random() - 0.5) * 1.8 * speedMult,
+                vy: (Math.random() * 1.8 + 1) * depth * speedMult,
+                size: isEmoji ? (Math.random() * 10 + 18) * depth : (Math.random() * 2 + 1.5) * depth,
+                rotation: Math.random() * 360,
+                rotationSpeed: (Math.random() - 0.5) * 2,
+                maxLife: 420,
+                shape: isEmoji ? snowEmojis[Math.floor(Math.random() * snowEmojis.length)] : undefined,
+                color: ['#ffffff', '#e0f7fa', '#f0fdf4', '#f1f5f9'][Math.floor(Math.random() * 4)]
+            };
+        }
+
+        // Downward Drifting Petals, Leaves, Flowers, Confetti
         const defaultEmojis = EMOJIS[type] || ['⭐'];
-        const isEmoji = Math.random() > 0.1;
+        const isEmoji = Math.random() > 0.15;
 
         return { ...base,
             x: Math.random() * canvas.width,
             y: -30,
             vx: (Math.random() - 0.5) * 3 * speedMult,
             vy: (Math.random() * 3 + 1.5) * depth * speedMult,
-            size: (Math.random() * 34 + 20) * depth,
+            size: isEmoji ? (Math.random() * 14 + 18) * depth : (Math.random() * 2.5 + 1.5) * depth,
             rotation: Math.random() * 360,
             rotationSpeed: (Math.random() - 0.5) * 5,
             maxLife: 350,
@@ -377,10 +395,11 @@ export function useParticleEffect(
         } else {
             ctx.globalCompositeOperation = 'lighter';
             ctx.fillStyle = p.color;
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = Math.min(p.size * 2, 8);
             ctx.shadowColor = p.color;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            const radius = Math.min(p.size, 4); // Clamp dot radius so non-emoji particles are never giant blinding orbs
+            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
             ctx.fill();
         }
 
