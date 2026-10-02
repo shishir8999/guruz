@@ -93,7 +93,7 @@ export function FlyToCartOverlay() {
 
             setFlyingItems((prev) => [...prev, newItem]);
 
-            // Exact moment the product lands in the cart (1400ms slow-mo flight)
+            // Exact moment the product lands in the cart (800ms smooth flight)
             setTimeout(() => {
                 // Remove the flying thumbnail
                 setFlyingItems((prev) => prev.filter((item) => item.id !== newItem.id));
@@ -109,7 +109,7 @@ export function FlyToCartOverlay() {
                     el.classList.remove('animate-cart-bounce');
                     void (el as HTMLElement).offsetWidth; // Trigger reflow
                     el.classList.add('animate-cart-bounce');
-                    setTimeout(() => el.classList.remove('animate-cart-bounce'), 800);
+                    setTimeout(() => el.classList.remove('animate-cart-bounce'), 700);
                 });
 
                 // 💥 3. Spawn a "+1" floating burst indicator
@@ -117,9 +117,9 @@ export function FlyToCartOverlay() {
                 setBursts((prev) => [...prev, { id: burstId, x: endX, y: endY }]);
                 setTimeout(() => {
                     setBursts((prev) => prev.filter((b) => b.id !== burstId));
-                }, 900);
+                }, 850);
 
-            }, 1400);
+            }, 800);
         };
 
         return () => {
@@ -145,7 +145,7 @@ export function FlyToCartOverlay() {
                             top: `${item.startY - item.startHeight / 2}px`,
                             width: `${item.startWidth}px`,
                             height: `${item.startHeight}px`,
-                            animation: 'flyToCartAnimation 1400ms cubic-bezier(0.25, 0.9, 0.35, 1) forwards',
+                            animation: 'flyToCartAnimation 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
                             ['--fly-delta-x' as any]: `${deltaX}px`,
                             ['--fly-delta-y' as any]: `${deltaY}px`,
                         }}

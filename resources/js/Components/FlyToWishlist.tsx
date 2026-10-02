@@ -97,7 +97,7 @@ export function FlyToWishlistOverlay() {
 
             setFlyingItems((prev) => [...prev, newItem]);
 
-            // Exact moment the heart lands in the wishlist (1200ms parabolic slow flight)
+            // Exact moment the heart lands in the wishlist (800ms smooth flight)
             setTimeout(() => {
                 // Remove flying item
                 setFlyingItems((prev) => prev.filter((item) => item.id !== newItem.id));
@@ -116,7 +116,7 @@ export function FlyToWishlistOverlay() {
                     el.classList.remove('animate-wishlist-bounce');
                     void (el as HTMLElement).offsetWidth; // Trigger reflow
                     el.classList.add('animate-wishlist-bounce');
-                    setTimeout(() => el.classList.remove('animate-wishlist-bounce'), 800);
+                    setTimeout(() => el.classList.remove('animate-wishlist-bounce'), 700);
                 });
 
                 // 💥 4. Spawn a "+1 ❤️" floating burst indicator
@@ -124,8 +124,8 @@ export function FlyToWishlistOverlay() {
                 setBursts((prev) => [...prev, { id: burstId, x: endX, y: endY }]);
                 setTimeout(() => {
                     setBursts((prev) => prev.filter((b) => b.id !== burstId));
-                }, 950);
-            }, 1200);
+                }, 850);
+            }, 800);
         };
 
         return () => {
@@ -151,7 +151,7 @@ export function FlyToWishlistOverlay() {
                             top: `${item.startY - item.startHeight / 2}px`,
                             width: `${item.startWidth}px`,
                             height: `${item.startHeight}px`,
-                            animation: 'flyToWishlistAnimation 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+                            animation: 'flyToWishlistAnimation 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
                             ['--fly-delta-x' as any]: `${deltaX}px`,
                             ['--fly-delta-y' as any]: `${deltaY}px`,
                         }}
