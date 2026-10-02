@@ -93,7 +93,7 @@ export function FlyToCartOverlay() {
 
             setFlyingItems((prev) => [...prev, newItem]);
 
-            // Exact moment the product lands in the cart (800ms smooth flight)
+            // Exact moment the product lands in the cart (1200ms slow-mo flight)
             setTimeout(() => {
                 // Remove the flying thumbnail
                 setFlyingItems((prev) => prev.filter((item) => item.id !== newItem.id));
@@ -119,7 +119,7 @@ export function FlyToCartOverlay() {
                     setBursts((prev) => prev.filter((b) => b.id !== burstId));
                 }, 850);
 
-            }, 800);
+            }, 1200);
         };
 
         return () => {
@@ -145,7 +145,7 @@ export function FlyToCartOverlay() {
                             top: `${item.startY - item.startHeight / 2}px`,
                             width: `${item.startWidth}px`,
                             height: `${item.startHeight}px`,
-                            animation: 'flyToCartAnimation 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+                            animation: 'flyToCartAnimation 1200ms cubic-bezier(0.2, 0.8, 0.25, 1) forwards',
                             ['--fly-delta-x' as any]: `${deltaX}px`,
                             ['--fly-delta-y' as any]: `${deltaY}px`,
                         }}
