@@ -10,8 +10,9 @@ import { ProductCard, Product } from '@/Components/ProductCard';
 import { 
     Store, Star, Users, CheckCircle2, MessageCircle, 
     Search, Award, ShieldCheck, Heart, Grid3x3, ThumbsUp,
-    Send, X, HelpCircle, CheckCheck
+    Send, X, HelpCircle, CheckCheck, Check
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Shop {
     id: number;
@@ -136,6 +137,11 @@ export default function Show({
                 if (res.data.success) {
                     setIsFollowing(res.data.isFollowing);
                     setFollowers(res.data.followersCount);
+                    if (res.data.isFollowing) {
+                        toast.success('Following! শপটি ফলো করা হয়েছে ❤️');
+                    } else {
+                        toast.info('শপটি আনফলো করা হয়েছে।');
+                    }
                 }
             })
             .catch(err => {
@@ -222,12 +228,21 @@ export default function Show({
                                     disabled={loadingFollow}
                                     className={`flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer ${
                                         isFollowing
-                                            ? 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                                            ? 'bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700'
                                             : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                                     }`}
                                 >
-                                    <Heart className="w-4 h-4" fill={isFollowing ? 'currentColor' : 'none'} />
-                                    {isFollowing ? 'ফলো করা হয়েছে' : 'ফলো করুন'}
+                                    {isFollowing ? (
+                                        <>
+                                            <Check className="w-4 h-4 text-emerald-600" />
+                                            <span>Following</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Heart className="w-4 h-4" />
+                                            <span>Follow</span>
+                                        </>
+                                    )}
                                 </button>
 
                                 {/* Messenger style WhatsApp Chat Trigger */}
