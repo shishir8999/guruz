@@ -518,11 +518,29 @@ html, body {
   padding-top: 0px !important;
 }
 
-/* Ensure translated text hover highlights remain transparent and clean */
-.goog-text-highlight {
+/* 🚫 ZERO BACKGROUND COLOR ON HOVER - COMPLETELY TRANSPARENT EVERYWHERE */
+html body #app .goog-text-highlight,
+html body .goog-text-highlight,
+font.goog-text-highlight,
+span.goog-text-highlight,
+.goog-text-highlight,
+[class*="goog-text-highlight"] {
+  background: transparent !important;
   background-color: transparent !important;
+  -webkit-box-shadow: none !important;
   box-shadow: none !important;
   border: none !important;
+  outline: none !important;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+a:hover font.goog-text-highlight,
+a:hover span.goog-text-highlight,
+a:hover .goog-text-highlight {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
 }
 
 /* Dark input autofill override */
