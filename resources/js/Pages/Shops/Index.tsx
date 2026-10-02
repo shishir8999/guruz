@@ -87,8 +87,8 @@ export default function Index({ shops }: { shops: { data: Shop[] } }) {
                             </div>
 
                             <div>
-                                <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-600 transition flex items-center justify-center gap-1">
-                                    <span>{s.name}</span>
+                                <h3 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition flex items-center justify-center gap-1">
+                                    <span className="truncate">{s.name}</span>
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                 </h3>
 

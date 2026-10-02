@@ -492,7 +492,7 @@ export default function Home({
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="notranslate text-[10px] sm:text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-emerald-600 transition" translate="no">
+                                            <span className="notranslate text-[10px] sm:text-xs font-bold text-slate-800 truncate block max-w-full group-hover:text-emerald-600 transition" translate="no">
                                                 {brand.name}
                                             </span>
                                         </Link>
@@ -528,7 +528,7 @@ export default function Home({
                                             <img src={c.icon} alt="" className="w-6 h-6 object-contain" />
                                         ) : (c.icon || '🛍️'))}
                                     </div>
-                                    <span className="text-[10px] sm:text-xs font-bold text-slate-700 line-clamp-1">{c.name}</span>
+                                    <span className="text-[10px] sm:text-xs font-bold text-slate-700 truncate block max-w-full">{c.name}</span>
                                 </Link>
                             ))}
                         </div>
@@ -585,7 +585,7 @@ export default function Home({
                                         </div>
                                     </div>
 
-                                    <span className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 max-w-[100px] group-hover:text-emerald-600 transition">
+                                    <span className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[100px] block group-hover:text-emerald-600 transition">
                                         {s.name}
                                     </span>
 

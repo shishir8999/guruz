@@ -73,7 +73,7 @@ export function CartDrawer({ open, onOpenChange }: { open: boolean; onOpenChange
                     )}
                   </Link>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/products/${r.slug}`} onClick={() => onOpenChange(false)} className="text-sm font-bold line-clamp-2 text-slate-700 dark:text-slate-200 hover:text-[#0052cc] dark:hover:text-blue-400">
+                    <Link href={`/products/${r.slug}`} onClick={() => onOpenChange(false)} className="text-sm font-bold line-clamp-2 text-slate-700 dark:text-slate-200 hover:text-[#0052cc] dark:hover:text-blue-400 block">
                       {r.name}
                     </Link>
                     <div className="text-sm text-emerald-600 dark:text-emerald-400 font-black mt-1">

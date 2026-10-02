@@ -131,7 +131,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
     };
 
     return (
-        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-shadow duration-200 flex flex-col justify-between h-full transform-gpu backface-hidden">
+        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-shadow duration-200 flex flex-col justify-between h-full">
             <div className="relative block overflow-hidden bg-white h-40 md:h-48 lg:h-[280px]">
                 <Link
                     href={`/products/${product.slug}`}
@@ -191,12 +191,14 @@ export function ProductCard({ product, compact = false }: { product: Product; co
 
             <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-1">
                 <div>
-                    <Link
-                        href={`/products/${product.slug}`}
-                        className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight min-h-[2rem] sm:min-h-[2.5rem] flex items-start"
-                    >
-                        {product.name}
-                    </Link>
+                    <div className="min-h-[2.25rem] sm:min-h-[2.5rem]">
+                        <Link
+                            href={`/products/${product.slug}`}
+                            className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight block"
+                        >
+                            {product.name}
+                        </Link>
+                    </div>
 
                     <div className="flex items-center gap-1 mt-1">
                         <span className="inline-flex items-center gap-0.5 text-amber-500 text-[11px] font-bold">

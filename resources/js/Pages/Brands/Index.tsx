@@ -177,8 +177,8 @@ export default function BrandsIndex({ brands = [] }: BrandsIndexProps) {
                                     </div>
 
                                     <div className="space-y-1 w-full notranslate" translate="no">
-                                        <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-emerald-600 transition flex items-center justify-center gap-1 notranslate" translate="no">
-                                            <span className="notranslate" translate="no">{brand.name}</span>
+                                        <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 transition flex items-center justify-center gap-1 notranslate" translate="no">
+                                            <span className="truncate notranslate" translate="no">{brand.name}</span>
                                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                         </h3>
 
