@@ -164,9 +164,10 @@ function FeatureBadgesAutoSlider({ badges }: { badges: any[] }) {
     );
 }
 
-function GuruzVerifiedAutoSlider({ products, intervalMs = 5000, sliderId = 'slider-1' }: { products: Product[]; intervalMs?: number; sliderId?: string }) {
+function GuruzVerifiedAutoSlider({ products, intervalMs = 6000, sliderId = 'slider-1' }: { products: Product[]; intervalMs?: number; sliderId?: string }) {
     const scrollRef = React.useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = React.useState(false);
+    const isHoveredRef = React.useRef(false);
 
     const scroll = (direction: 'left' | 'right') => {
         if (!scrollRef.current) return;
@@ -177,15 +178,19 @@ function GuruzVerifiedAutoSlider({ products, intervalMs = 5000, sliderId = 'slid
     };
 
     React.useEffect(() => {
-        if (!products || products.length <= 4 || isHovered) return;
+        if (!products || products.length <= 1) return;
 
         const interval = setInterval(() => {
-            if (!scrollRef.current || isHovered) return;
+            if (!scrollRef.current || isHoveredRef.current) return;
             const container = scrollRef.current;
-            const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).clientWidth + 16 : 220;
             const maxScroll = container.scrollWidth - container.clientWidth;
 
-            if (container.scrollLeft >= maxScroll - 10) {
+            // If all cards fit on the screen without overflow, never scroll or jump
+            if (maxScroll <= 20) return;
+
+            const cardWidth = container.firstElementChild ? (container.firstElementChild as HTMLElement).clientWidth + 16 : 220;
+
+            if (container.scrollLeft >= maxScroll - 15) {
                 container.scrollTo({ left: 0, behavior: 'smooth' });
             } else {
                 container.scrollBy({ left: cardWidth, behavior: 'smooth' });
@@ -193,25 +198,36 @@ function GuruzVerifiedAutoSlider({ products, intervalMs = 5000, sliderId = 'slid
         }, intervalMs);
 
         return () => clearInterval(interval);
-    }, [products, isHovered, intervalMs]);
+    }, [products, intervalMs]);
 
     if (!products || products.length === 0) return null;
+
+    const handleHoverStart = () => {
+        isHoveredRef.current = true;
+        setIsHovered(true);
+    };
+
+    const handleHoverEnd = () => {
+        isHoveredRef.current = false;
+        setIsHovered(false);
+    };
 
     return (
         <div 
             id={sliderId}
             className="relative group/slider w-full py-1"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            onTouchStart={() => setIsHovered(true)}
-            onTouchEnd={() => setTimeout(() => setIsHovered(false), 3000)}
+            onMouseEnter={handleHoverStart}
+            onMouseLeave={handleHoverEnd}
+            onMouseMove={handleHoverStart}
+            onTouchStart={handleHoverStart}
+            onTouchEnd={() => setTimeout(handleHoverEnd, 3000)}
         >
             {/* Prev Button */}
             <button
                 type="button"
                 onClick={() => scroll('left')}
                 aria-label="Previous products"
-                className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
+                className="absolute left-1 sm:left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 pointer-events-none group-hover/slider:opacity-100 group-hover/slider:pointer-events-auto hover:scale-105 active:scale-95 cursor-pointer"
             >
                 <ChevronLeft className="w-5 h-5" />
             </button>
@@ -221,7 +237,7 @@ function GuruzVerifiedAutoSlider({ products, intervalMs = 5000, sliderId = 'slid
                 type="button"
                 onClick={() => scroll('right')}
                 aria-label="Next products"
-                className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
+                className="absolute right-1 sm:right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 bg-white/95 dark:bg-slate-800/95 hover:bg-white text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all opacity-0 pointer-events-none group-hover/slider:opacity-100 group-hover/slider:pointer-events-auto hover:scale-105 active:scale-95 cursor-pointer"
             >
                 <ChevronRight className="w-5 h-5" />
             </button>
@@ -368,12 +384,12 @@ export default function Home({
                         <GuruzVerifiedAutoSlider 
                             sliderId="eid-special-slider"
                             products={guruzSpecial.products} 
-                            intervalMs={2800}
+                            intervalMs={6000}
                         />
                     </section>
                 )}
 
-                {/* 2. Flash Sale Section (ফ্ল্যাশ সেল - ২ সেকেন্ডের ১-কার্ড অটো স্লাইডার) */}
+                {/* 2. Flash Sale Section (ফ্ল্যাশ সেল - স্মুথ অটো স্লাইডার) */}
                 <section className="bg-gradient-to-r from-rose-700 via-red-600 to-amber-600 rounded-xl p-3 sm:p-4 text-white shadow-md relative overflow-hidden space-y-3 border border-rose-500/30">
                     <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/20 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                     <div className="flex items-center justify-between border-b border-white/20 pb-2 relative z-10">
@@ -395,7 +411,7 @@ export default function Home({
 
                     <GuruzVerifiedAutoSlider 
                         sliderId="flash-sale-slider"
-                        intervalMs={2200}
+                        intervalMs={6000}
                         products={
                             (flashSaleProducts && flashSaleProducts.length > 0)
                                 ? flashSaleProducts

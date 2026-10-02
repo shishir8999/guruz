@@ -131,7 +131,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
     };
 
     return (
-        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-shadow duration-200 flex flex-col justify-between h-full">
+        <div className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-shadow duration-200 flex flex-col justify-between h-full transform-gpu backface-hidden">
             <div className="relative block overflow-hidden bg-white h-40 md:h-48 lg:h-[280px]">
                 <Link
                     href={`/products/${product.slug}`}
@@ -193,7 +193,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
                 <div>
                     <Link
                         href={`/products/${product.slug}`}
-                        className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight"
+                        className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight min-h-[2rem] sm:min-h-[2.5rem] flex items-start"
                     >
                         {product.name}
                     </Link>
