@@ -103,7 +103,7 @@ class SellerProductImportController extends Controller
         $shop->loadMissing('kyc');
         $isKycApproved = ($shop->kyc && strtolower($shop->kyc->status) === 'approved')
             || in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin'])
-            || ($user->hasRole && $user->hasRole('admin'));
+            || (method_exists($user, 'hasRole') && $user->hasRole('admin'));
 
         $shopId = $shop->id;
         $file = $request->file('csv_file');

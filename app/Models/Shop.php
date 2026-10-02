@@ -80,7 +80,7 @@ class Shop extends Model
 
     public function getIsApprovedAttribute(): bool
     {
-        if ($this->owner && (in_array($this->owner->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($this->owner->hasRole && $this->owner->hasRole('admin')))) {
+        if ($this->owner && (in_array($this->owner->role ?? '', ['admin', 'super_admin', 'superadmin']) || (method_exists($this->owner, 'hasRole') && $this->owner->hasRole('admin')))) {
             return true;
         }
 

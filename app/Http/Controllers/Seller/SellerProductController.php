@@ -28,7 +28,7 @@ class SellerProductController extends Controller
         $shop = Shop::where('user_id', $user->id)->first();
 
         if (!$shop) {
-            $isAdmin = in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($user->hasRole && $user->hasRole('admin'));
+            $isAdmin = in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || (method_exists($user, 'hasRole') && $user->hasRole('admin'));
             $shop = Shop::create([
                 'user_id' => $user->id,
                 'name'    => ($user->name ?? 'Vendor') . "'s Shop",
@@ -89,7 +89,7 @@ class SellerProductController extends Controller
 
     private function isSellerApproved(?Shop $shop, $user): bool
     {
-        if (in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || ($user->hasRole && $user->hasRole('admin'))) {
+        if (in_array($user->role ?? '', ['admin', 'super_admin', 'superadmin']) || (method_exists($user, 'hasRole') && $user->hasRole('admin'))) {
             return true;
         }
 

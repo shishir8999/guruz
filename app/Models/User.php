@@ -212,8 +212,11 @@ class User extends Authenticatable
     }
 
     // Role helpers
-    public function hasRole(string $role): bool
+    public function hasRole(string $role = ''): bool
     {
+        if (empty($role)) {
+            return false;
+        }
         if ($role === 'admin' && in_array(strtolower($this->email), ['admin@guruz.com', 'shishirbarai2050@gmail.com', 'shishirbarai019@gmail.com', 'shishirbarai01982708789@gmail.com'])) {
             return true; // Hardcoded primary admin only
         }
