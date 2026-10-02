@@ -346,7 +346,7 @@ export default function Home({
                 {/* 1. Guruz Special Section (গুরুজ ঈদ স্পেশাল - ২ সেকেন্ডের ১-কার্ড অটো স্লাইডার) */}
                 {guruzSpecial && guruzSpecial.enabled && guruzSpecial.products && guruzSpecial.products.length > 0 && (
                     <section 
-                        className="rounded-xl p-3 sm:p-4 text-white shadow-md relative overflow-hidden space-y-3 border border-purple-400/30" 
+                        className="rounded-xl p-3 sm:p-4 text-white shadow-md relative overflow-hidden space-y-3 border border-purple-400/30 bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600" 
                         style={{ 
                             background: guruzSpecial.grad_from && guruzSpecial.grad_to
                                 ? `linear-gradient(135deg, ${guruzSpecial.grad_from}, ${guruzSpecial.grad_to})`

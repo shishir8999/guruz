@@ -250,65 +250,6 @@
                     });
                 });
             })();
-
-            // 🚫 Permanently eliminate Google Translate hover background highlight anywhere on the page
-            (function() {
-                function stripHighlight(el) {
-                    if (!el) return;
-                    if (el.classList && el.classList.contains('goog-text-highlight')) {
-                        el.classList.remove('goog-text-highlight');
-                    }
-                    if (el.style && (el.style.backgroundColor || el.style.boxShadow)) {
-                        el.style.removeProperty('background-color');
-                        el.style.removeProperty('background');
-                        el.style.removeProperty('box-shadow');
-                    }
-                }
-
-                // Intercept mouseover in capture phase before Google can paint background
-                document.addEventListener('mouseover', function(e) {
-                    var t = e.target;
-                    if (t) {
-                        stripHighlight(t);
-                        var nodes = t.querySelectorAll ? t.querySelectorAll('.goog-text-highlight, [class*="goog-text-highlight"]') : [];
-                        for (var i = 0; i < nodes.length; i++) {
-                            stripHighlight(nodes[i]);
-                        }
-                    }
-                }, true);
-
-                // MutationObserver to immediately strip goog-text-highlight if injected
-                var hlObserver = new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                        var m = mutations[i];
-                        if (m.type === 'attributes') {
-                            if (m.attributeName === 'class' || m.attributeName === 'style') {
-                                stripHighlight(m.target);
-                            }
-                        } else if (m.type === 'childList') {
-                            for (var j = 0; j < m.addedNodes.length; j++) {
-                                var node = m.addedNodes[j];
-                                if (node.nodeType === 1) {
-                                    stripHighlight(node);
-                                    var sub = node.querySelectorAll ? node.querySelectorAll('.goog-text-highlight, [class*="goog-text-highlight"]') : [];
-                                    for (var k = 0; k < sub.length; k++) {
-                                        stripHighlight(sub[k]);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-                document.addEventListener('DOMContentLoaded', function() {
-                    hlObserver.observe(document.body || document.documentElement, {
-                        attributes: true,
-                        attributeFilter: ['class', 'style'],
-                        childList: true,
-                        subtree: true
-                    });
-                });
-            })();
         </script>
         <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
