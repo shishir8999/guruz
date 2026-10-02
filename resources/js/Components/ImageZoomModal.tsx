@@ -97,7 +97,7 @@ export function ImageZoomModal({ images, index = 0, alt = "Product image", onClo
   if (!src) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[9999999] bg-black/95 flex flex-col" role="dialog" aria-modal="true">
       <div className="flex items-center justify-between px-3 py-2 text-white">
         <div className="text-xs opacity-80">{i + 1} / {images.length}</div>
         <div className="flex items-center gap-1">

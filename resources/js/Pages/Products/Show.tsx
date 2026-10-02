@@ -114,6 +114,9 @@ export default function ProductShow({
 
     useEffect(() => {
         if (!isZoomModalOpen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 setIsZoomModalOpen(false);
@@ -125,7 +128,10 @@ export default function ProductShow({
             }
         };
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = prevOverflow;
+        };
     }, [isZoomModalOpen, allImages.length]);
 
     const currentPrice = activeVariant?.sale_price ?? activeVariant?.price ?? product.sale_price ?? product.price;
@@ -1088,7 +1094,7 @@ export default function ProductShow({
             {/* ─── FULLSCREEN PRODUCT IMAGE ZOOM LIGHTBOX MODAL ─── */}
             {isZoomModalOpen && (
                 <div 
-                    className="fixed inset-0 z-50 bg-black/92 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6 animate-in fade-in duration-200 select-none"
+                    className="fixed inset-0 z-[9999999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6 animate-in fade-in duration-200 select-none"
                     onClick={() => {
                         setIsZoomModalOpen(false);
                         setModalZoomScale(1);
