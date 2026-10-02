@@ -148,12 +148,12 @@ function FeatureBadgesAutoSlider({ badges }: { badges: any[] }) {
                     return (
                         <div 
                             key={badge.id || index}
-                            className={`snap-start shrink-0 w-[calc(50%-0.35rem)] min-w-[calc(50%-0.35rem)] sm:w-auto sm:min-w-[185px] bg-gradient-to-r ${badge.gradient_from || 'from-cyan-500'} ${badge.gradient_to || 'to-blue-500'} text-white rounded-2xl px-2.5 py-2.5 sm:px-4 sm:py-2.5 flex items-center gap-2 sm:gap-2.5 shadow-sm hover:shadow-md active:scale-95 transition-all cursor-pointer`}
+                            className={`snap-start shrink-0 w-[calc(50%-0.35rem)] min-w-[calc(50%-0.35rem)] sm:w-auto sm:min-w-[185px] bg-gradient-to-r ${badge.gradient_from || 'from-cyan-500'} ${badge.gradient_to || 'to-blue-500'} text-white rounded-2xl px-2.5 py-2.5 sm:px-4 sm:py-2.5 flex items-center gap-2 sm:gap-2.5 shadow-sm hover:shadow-md transition-shadow cursor-default select-none`}
                         >
                             <div className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                                 <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                             </div>
-                            <span className="text-[11px] sm:text-xs font-black tracking-tight leading-tight truncate">
+                            <span className="text-[11px] sm:text-xs font-black tracking-tight leading-tight truncate min-w-0 text-white">
                                 {lang === 'en' ? (badge.label_en || badge.label_bn) : (badge.label_bn || badge.label_en)}
                             </span>
                         </div>

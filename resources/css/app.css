@@ -465,10 +465,9 @@ body.nprogress-busy,
   cursor: inherit !important;
 }
 
-/* 🚫 Completely eliminate all Google Translate floating popup widgets, spinners, banners, and tooltips */
+/* 🚫 Safely hide ONLY Google Translate floating popup widgets, spinners, and balloon tooltips (strictly body overlays, NEVER page text) */
 .goog-te-banner-frame,
 iframe.goog-te-banner-frame,
-.goog-te-banner-frame.skiptranslate,
 #goog-gt-tt,
 #goog-gt-vt,
 [id*="goog-gt-"],
@@ -476,31 +475,13 @@ iframe.goog-te-banner-frame,
 .goog-tooltip,
 .goog-tooltip:hover,
 .goog-te-gadget-icon,
-.goog-te-spinner,
 .goog-te-spinner-pos,
-.goog-te-spinner-animation,
-.VIpgJd-ZVi9od-ORHb, 
-.VIpgJd-ZVi9od-ORHb-OEVmcd, 
-.VIpgJd-ZVi9od-aZ2wEe, 
-.VIpgJd-ZVi9od-aZ2wEe-OiiCO, 
-.VIpgJd-ZVi9od-aZ2wEe-wOHMyf, 
-.VIpgJd-ZVi9od-vH1Gmf, 
-.VIpgJd-ZVi9od-l4eHX-hSRGPd, 
-.VIpgJd-yAWNEb-L7lbkb, 
-.VIpgJd-ZVi9od-xl07Ob-lTBxed,
-.VIpgJd-ZVi9od-xl07Ob-OEVmcd,
-.VIpgJd-yD054b-VGnKid-support-links,
-.VIpgJd-yD054b-y25Nvf,
-.VIpgJd-ZVi9od-vH1Gmf-ibnC6b,
-[class*="VIpgJd-ZVi9od"],
-[class*="VIpgJd-"],
-.skiptranslate:not(#google_translate_element) {
+body > div[id*="goog-gt-"],
+body > div.VIpgJd-ZVi9od-aZ2wEe-wOHMyf {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
   width: 0 !important;
-  max-height: 0 !important;
-  max-width: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
   overflow: hidden !important;
@@ -508,6 +489,23 @@ iframe.goog-te-banner-frame,
   left: -99999px !important;
   top: -99999px !important;
   z-index: -99999 !important;
+}
+
+/* 🛡️ Universal Text Shield: Ensure all text, font, and span elements inside #app are ALWAYS visible and in flow */
+#app font,
+#app span,
+#app font[class*="VIpgJd-"],
+#app span[class*="VIpgJd-"],
+#app .skiptranslate:not(#google_translate_element) {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 body {
@@ -579,26 +577,16 @@ nav button,
 }
 
 /* 3. Cursor Hover: Text color changes dynamically on mouseover */
-a:hover,
-button:hover,
-[role="button"]:hover,
-.cursor-pointer:hover {
+/* 3. Cursor Hover: Text color changes dynamically on mouseover for plain links & clickable-text */
+a:not([class*="text-"]):not([class*="bg-"]):hover,
+.clickable-text:hover {
   color: var(--theme-primary, #16a34a);
 }
 
-/* Inner elements inside links / clickable cards inherit hover color */
-a:hover > span:not([class*="bg-"]),
-a:hover > p,
-a:hover > h1,
-a:hover > h2,
-a:hover > h3,
-a:hover > h4,
-.cursor-pointer:hover > span:not([class*="bg-"]),
-.cursor-pointer:hover > p,
-.cursor-pointer:hover > h1,
-.cursor-pointer:hover > h2,
-.cursor-pointer:hover > h3,
-.cursor-pointer:hover > h4 {
+/* Inner un-styled text elements inside plain links inherit hover color */
+a:not([class*="text-"]):not([class*="bg-"]):hover > span:not([class*="text-"]):not([class*="bg-"]),
+a:not([class*="text-"]):not([class*="bg-"]):hover > p:not([class*="text-"]),
+.clickable-text:hover > span:not([class*="text-"]) {
   color: inherit;
 }
 

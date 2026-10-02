@@ -276,19 +276,8 @@
             .goog-tooltip,
             .goog-tooltip:hover,
             .goog-te-gadget-icon,
-            .VIpgJd-ZVi9od-ORHb, 
-            .VIpgJd-ZVi9od-ORHb-OEVmcd, 
-            .VIpgJd-ZVi9od-aZ2wEe, 
-            .VIpgJd-ZVi9od-aZ2wEe-OiiCO, 
-            .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, 
-            .VIpgJd-ZVi9od-vH1Gmf, 
-            .VIpgJd-ZVi9od-l4eHX-hSRGPd, 
-            .VIpgJd-yAWNEb-L7lbkb, 
-            .VIpgJd-ZVi9od-xl07Ob-lTBxed,
-            .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
-            .VIpgJd-yD054b-VGnKid-support-links,
-            .VIpgJd-yD054b-y25Nvf,
-            .VIpgJd-ZVi9od-vH1Gmf-ibnC6b {
+            body > div[id*="goog-gt-"],
+            body > div.VIpgJd-ZVi9od-aZ2wEe-wOHMyf {
                 display: none !important;
                 visibility: hidden !important;
                 pointer-events: none !important;
@@ -299,6 +288,17 @@
                 width: 0 !important;
                 height: 0 !important;
                 z-index: -99999 !important;
+            }
+
+            /* 🛡️ Ensure text inside #app is ALWAYS visible and never hidden by translation wrappers */
+            #app font,
+            #app span,
+            #app font[class*="VIpgJd-"],
+            #app span[class*="VIpgJd-"] {
+                display: inline !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: static !important;
             }
 
             body {
