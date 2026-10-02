@@ -166,7 +166,6 @@ function FeatureBadgesAutoSlider({ badges }: { badges: any[] }) {
 
 function GuruzVerifiedAutoSlider({ products, intervalMs = 6000, sliderId = 'slider-1' }: { products: Product[]; intervalMs?: number; sliderId?: string }) {
     const scrollRef = React.useRef<HTMLDivElement>(null);
-    const [isHovered, setIsHovered] = React.useState(false);
     const isHoveredRef = React.useRef(false);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -204,12 +203,10 @@ function GuruzVerifiedAutoSlider({ products, intervalMs = 6000, sliderId = 'slid
 
     const handleHoverStart = () => {
         isHoveredRef.current = true;
-        setIsHovered(true);
     };
 
     const handleHoverEnd = () => {
         isHoveredRef.current = false;
-        setIsHovered(false);
     };
 
     return (
@@ -218,7 +215,6 @@ function GuruzVerifiedAutoSlider({ products, intervalMs = 6000, sliderId = 'slid
             className="relative group/slider w-full py-1"
             onMouseEnter={handleHoverStart}
             onMouseLeave={handleHoverEnd}
-            onMouseMove={handleHoverStart}
             onTouchStart={handleHoverStart}
             onTouchEnd={() => setTimeout(handleHoverEnd, 3000)}
         >

@@ -264,7 +264,7 @@ export default function MyShop({ shop, kycStatus, kycRejectionReason, myProducts
                                                     </span>
                                                 )}
                                             </div>
-                                            <h4 className="font-bold text-slate-800 text-sm line-clamp-2 mb-1 group-hover:text-emerald-600 transition">
+                                            <h4 className="font-bold text-slate-800 text-sm line-clamp-2 mb-1 group-hover:text-emerald-600" title={product.name}>
                                                 {product.name}
                                             </h4>
                                             <p className="text-xs text-slate-500 font-mono mb-2">SKU: {product.sku || 'N/A'}</p>

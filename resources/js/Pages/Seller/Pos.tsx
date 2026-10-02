@@ -422,7 +422,7 @@ export default function Pos({
 
                                             {/* Product Info */}
                                             <div className="space-y-1">
-                                                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight group-hover:text-emerald-500 transition">
+                                                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight group-hover:text-emerald-500" title={p.name}>
                                                     {p.name}
                                                 </h4>
                                                 <div className="flex items-center justify-between pt-1">

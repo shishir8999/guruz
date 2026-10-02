@@ -192,8 +192,8 @@ export default function Favorites({ wishlistItems = [] }: { wishlistItems: any[]
                                     
                                     {/* Product Info */}
                                     <div className="p-4 flex flex-col flex-1 border-t border-slate-50">
-                                        <Link href={productUrl} className="block mb-2">
-                                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug">
+                                        <Link href={productUrl} className="block mb-2 h-9 sm:h-10 overflow-hidden">
+                                            <h3 className="font-bold text-xs sm:text-sm text-slate-800 line-clamp-2 group-hover:text-emerald-600 leading-snug" title={product.name}>
                                                 {product.name}
                                             </h3>
                                         </Link>

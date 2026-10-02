@@ -556,7 +556,7 @@ html, body {
 }
 
 /* 2. Global Smooth Color Transitions for Interactive Elements */
-a,
+a:not([class*="line-clamp"]),
 button,
 [role="button"],
 .cursor-pointer,
@@ -567,7 +567,15 @@ nav button,
               background-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.18s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+              opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🛡️ Universal Protection: Line-clamp elements must NEVER have transitions to prevent Chromium layout collapse & jitter bug */
+[class*="line-clamp"],
+[class*="line-clamp"] * {
+  transition: none !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* 3. Cursor Hover: Text color changes dynamically on mouseover */

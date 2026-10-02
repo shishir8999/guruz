@@ -191,10 +191,11 @@ export function ProductCard({ product, compact = false }: { product: Product; co
 
             <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-1">
                 <div>
-                    <div className="min-h-[2.25rem] sm:min-h-[2.5rem]">
+                    <div className="h-9 sm:h-10 overflow-hidden">
                         <Link
                             href={`/products/${product.slug}`}
-                            className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 transition-colors leading-tight block"
+                            className="text-xs sm:text-sm font-bold line-clamp-2 text-slate-800 hover:text-emerald-600 leading-tight"
+                            title={product.name}
                         >
                             {product.name}
                         </Link>
