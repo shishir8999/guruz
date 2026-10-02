@@ -697,8 +697,12 @@ div:where(.swal2-container).swal2-noanimation {
 }
 
 div:where(.swal2-container) div:where(.swal2-popup) {
-  border-radius: 1rem !important;
-  padding: 1.75rem 1.5rem !important;
+  width: auto !important;
+  max-width: min(520px, 94vw) !important;
+  min-width: min(360px, 94vw) !important;
+  box-sizing: border-box !important;
+  border-radius: 1.25rem !important;
+  padding: 2rem 1.75rem !important;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
   transform: none !important;
@@ -708,13 +712,14 @@ div:where(.swal2-container) div:where(.swal2-popup) {
 div:where(.swal2-container) .swal2-actions {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.75rem !important;
   width: 100% !important;
-  margin-top: 1.5rem !important;
+  margin-top: 1.75rem !important;
   padding: 0 !important;
+  background: transparent !important;
 }
 
 /* 3. Button Dimensions, Typography & Hover Stability */
@@ -722,29 +727,32 @@ div:where(.swal2-container) button.swal2-styled {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 120px !important;
-  height: 42px !important;
-  padding: 0 1.25rem !important;
+  flex-shrink: 0 !important;
+  min-width: 100px !important;
+  width: auto !important;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 0.625rem 1.25rem !important;
   font-size: 0.875rem !important;
   font-weight: 700 !important;
-  line-height: 1 !important;
-  border-radius: 0.5rem !important;
+  line-height: 1.25 !important;
+  border-radius: 0.625rem !important;
   margin: 0 !important;
   border: none !important;
   outline: none !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
   transform: none !important;
   cursor: pointer !important;
   white-space: nowrap !important;
+  overflow: visible !important;
   color: #ffffff !important;
-  transition: background-color 0.15s ease, box-shadow 0.15s ease !important;
+  transition: background-color 0.15s ease !important;
 }
 
 /* Confirm Button */
 div:where(.swal2-container) button.swal2-confirm {
   background-color: #e11d48 !important;
   color: #ffffff !important;
-  border: 1px solid transparent !important;
 }
 
 div:where(.swal2-container) button.swal2-confirm:hover,
@@ -752,14 +760,12 @@ div:where(.swal2-container) button.swal2-confirm:focus {
   background-color: #be123c !important;
   color: #ffffff !important;
   transform: none !important;
-  box-shadow: 0 4px 6px -1px rgba(225, 29, 72, 0.3) !important;
 }
 
 /* Cancel Button */
 div:where(.swal2-container) button.swal2-cancel {
   background-color: #64748b !important;
   color: #ffffff !important;
-  border: 1px solid transparent !important;
 }
 
 div:where(.swal2-container) button.swal2-cancel:hover,
@@ -767,26 +773,38 @@ div:where(.swal2-container) button.swal2-cancel:focus {
   background-color: #475569 !important;
   color: #ffffff !important;
   transform: none !important;
-  box-shadow: 0 4px 6px -1px rgba(100, 116, 139, 0.3) !important;
 }
 
 /* Deny Button */
 div:where(.swal2-container) button.swal2-deny {
-  background-color: #f59e0b !important;
+  background-color: #d97706 !important;
   color: #ffffff !important;
 }
 
 div:where(.swal2-container) button.swal2-deny:hover,
 div:where(.swal2-container) button.swal2-deny:focus {
-  background-color: #d97706 !important;
+  background-color: #b45309 !important;
   color: #ffffff !important;
   transform: none !important;
 }
 
-/* Ensure no text hover color overrides SweetAlert2 buttons */
+/* Ensure no text hover color overrides SweetAlert2 buttons (including Google Translate <font>) */
+div:where(.swal2-container) button.swal2-styled,
+div:where(.swal2-container) button.swal2-styled *,
+div:where(.swal2-container) button.swal2-styled font,
+div:where(.swal2-container) button.swal2-styled span {
+  color: #ffffff !important;
+  transform: none !important;
+}
+
 div:where(.swal2-container) button.swal2-styled:hover,
+div:where(.swal2-container) button.swal2-styled:hover *,
+div:where(.swal2-container) button.swal2-styled:hover font,
+div:where(.swal2-container) button.swal2-styled:hover span,
+div:where(.swal2-container) button.swal2-styled:focus,
+div:where(.swal2-container) button.swal2-styled:focus *,
 div:where(.swal2-container) button.swal2-styled:active,
-div:where(.swal2-container) button.swal2-styled:focus {
+div:where(.swal2-container) button.swal2-styled:active * {
   color: #ffffff !important;
   transform: none !important;
 }

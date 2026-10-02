@@ -371,8 +371,8 @@ export default function Index({
                 confirmButtonColor: '#ef4444',
                 denyButtonColor: '#d97706',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: '🗑️ ইউজার অ্যাকাউন্ট সম্পূর্ণ ডিলিট',
-                denyButtonText: '💬 শুধুমাত্র চ্যাট মুছুন',
+                confirmButtonText: '🗑️ ইউজার ডিলিট',
+                denyButtonText: '💬 চ্যাট মুছুন',
                 cancelButtonText: 'বাতিল',
             }).then((result) => {
                 if (result.isConfirmed) {
